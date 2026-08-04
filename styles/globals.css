@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Class-based dark mode.
+ * `next-themes` adds/removes the `.dark` class on <html>, which activates this
+ * custom variant so the `dark:` utilities work.
+ */
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  /* Consistent, visible keyboard focus for the whole app. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+}
+
+/*
+ * Respect users who prefer reduced motion: collapse transitions/animations.
+ * (Framer Motion components also read prefers-reduced-motion via
+ * useReducedMotion.)
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
