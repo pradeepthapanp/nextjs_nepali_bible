@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import {
   parseCommentary,
+  parseReferenceTarget,
   type CommentaryParseOptions,
 } from "./commentary-parser";
 import {
@@ -78,6 +79,17 @@ export function parseChapterContent(
   const commentaryOptions: CommentaryParseOptions = { books };
   const language = options.verse?.language ?? "ne";
 
+  // Reflinks in VERSE text resolve exactly like commentary reflinks (English
+  // short name + Arabic digits from the `target` attribute, port of Flutter
+  // `CmtParser.openReference`). The resolver is injected when books are known
+  // so inline reference links carry a usable target.
+  const verseOptions: VerseParseOptions = {
+    ...options.verse,
+    referenceResolver:
+      options.verse?.referenceResolver ??
+      ((label: string) => parseReferenceTarget(label, books)),
+  };
+
   const verses: ParsedChapterVerse[] = content.verses.map((verse) => {
     const titles = content.titles.filter((title) => title.verse === verse.verse);
     const commentary: ParsedChapterCommentary[] = (content.commentaries ?? [])
@@ -89,7 +101,7 @@ export function parseChapterContent(
 
     return {
       verse,
-      tree: parseVerse(verse, language, options.verse),
+      tree: parseVerse(verse, language, verseOptions),
       titles: parseTitles(titles, titleOptions),
       commentary,
       crossReferences,

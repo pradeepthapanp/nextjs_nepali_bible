@@ -92,15 +92,25 @@ export function useChapterContent(
       (options.enabled ?? true),
   });
 
+  const includeCrossRefs = options.includeCrossRefs ?? true;
+  const includeCommentary = options.includeCommentary ?? true;
+
   const data = useMemo<ChapterContent | undefined>(() => {
     const verses = chapterQuery.data?.verses;
     const titles = chapterQuery.data?.titles;
     if (!verses || !titles) return undefined;
 
-    const crossReferences: CrossReference[] | undefined =
-      crossReferencesQuery.data ?? undefined;
-    const commentaries: CommentaryEntry[] | undefined =
-      commentaryQuery.data ?? undefined;
+    // Gate the output by the reader-settings toggles: React Query keeps a
+    // disabled query's cached data, so without this the Commentary/References
+    // toggles would NOT hide already-fetched content. Gating here makes the
+    // visibility change instant (no reload) while the queries stay enabled
+    // and cached for the next toggle-back.
+    const crossReferences: CrossReference[] | undefined = includeCrossRefs
+      ? (crossReferencesQuery.data ?? undefined)
+      : undefined;
+    const commentaries: CommentaryEntry[] | undefined = includeCommentary
+      ? (commentaryQuery.data ?? undefined)
+      : undefined;
 
     return {
       versionId,
@@ -115,6 +125,8 @@ export function useChapterContent(
     chapterQuery.data,
     crossReferencesQuery.data,
     commentaryQuery.data,
+    includeCrossRefs,
+    includeCommentary,
     versionId,
     bookNumber,
     chapter,

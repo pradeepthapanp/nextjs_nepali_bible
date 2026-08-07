@@ -3,6 +3,7 @@
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { SupabaseProvider } from "@/providers/supabase-provider";
+import { HighlightProvider } from "@/features/bible/components/highlight-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 /**
@@ -25,8 +26,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryProvider>
         <SupabaseProvider>
-          {children}
-          <Toaster />
+          <HighlightProvider>
+            {children}
+            <Toaster />
+          </HighlightProvider>
         </SupabaseProvider>
       </QueryProvider>
     </ThemeProvider>

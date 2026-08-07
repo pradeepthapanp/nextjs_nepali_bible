@@ -1,16 +1,12 @@
 /**
  * Shared service-layer helpers.
+ *
+ * `unwrap` now lives in the shared services layer (`@/services/helpers`) and
+ * is re-exported here so the existing feature imports stay unchanged — there
+ * is a single implementation, shared by the Bible and Music features.
+ * `requiresTable` is Bible-specific diagnostics and stays local.
  */
-
-/**
- * Unwraps a Supabase query response: throws on `error`, otherwise returns the
- * `data` payload. Every service method uses this instead of repeating the
- * `if (error) throw error` pattern.
- */
-export function unwrap<T>(result: { data: T | null; error: unknown }): T {
-  if (result.error) throw result.error;
-  return result.data as T;
-}
+export { unwrap } from "@/services/helpers";
 
 /**
  * Marker for capabilities that have **no backing table** in the current schema

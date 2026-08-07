@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/cn";
 
 export interface SkipLinkProps {
@@ -15,6 +18,7 @@ export function SkipLink({
   targetId = "main-content",
   className,
 }: SkipLinkProps) {
+  const t = useTranslations("common");
   return (
     <a
       href={`#${targetId}`}
@@ -23,7 +27,7 @@ export function SkipLink({
         className,
       )}
     >
-      Skip to content
+      {t("skipToContent")}
     </a>
   );
 }

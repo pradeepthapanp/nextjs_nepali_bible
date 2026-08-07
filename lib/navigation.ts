@@ -1,67 +1,120 @@
-import {
-  BookOpen,
-  FileText,
-  Home,
-  HelpCircle,
-  Music,
-  Settings,
-  Users,
-} from "lucide-react";
-import type {
-  FooterLinkGroup,
-  NavItem,
-} from "@/types/navigation";
+import type { FooterLinkGroup, NavItem } from "@/types/navigation";
+import { siteConfig } from "@/lib/site";
 
 /**
- * Navigation content.
- *
- * PLACEHOLDER data: hrefs are `"#"` until the corresponding features are
- * migrated. This module is the single source of nav structure shared by the
- * header, sidebar, bottom navigation and footer — features will replace the
- * entries, not the components.
+ * Navigation content — the single source of truth for the global top
+ * navigation (`SiteNav`/`AppHeader`), the home quick-access cards and the
+ * footer. Every `href` is a real application route; features add their entry
+ * here instead of hardcoding nav in their own components.
  */
 export const mainNav: NavItem[] = [
-  { label: "गृह", href: "/", icon: Home },
-  { label: "बाइबल", href: "#", icon: BookOpen },
-  { label: "संगीत", href: "#", icon: Music },
-  { label: "लेखहरू", href: "#", icon: FileText },
-  { label: "समुदाय", href: "#", icon: Users },
-  { label: "क्विज", href: "#", icon: HelpCircle },
-  { label: "सेटिङ", href: "#", icon: Settings },
+  { label: "Home", labelKey: "nav.home", href: "/", icon: "home", descriptionKey: "nav.homeDesc" },
+  {
+    label: "Bible",
+    labelKey: "nav.bible",
+    href: "/bible",
+    icon: "bible",
+    descriptionKey: "nav.bibleDesc",
+  },
+  {
+    label: "Music",
+    labelKey: "nav.music",
+    href: "/music",
+    icon: "music",
+    descriptionKey: "nav.musicDesc",
+  },
+  {
+    label: "Playlists",
+    labelKey: "nav.playlists",
+    href: "/playlists",
+    icon: "playlists",
+    descriptionKey: "nav.playlistsDesc",
+  },
+  {
+    label: "Articles",
+    labelKey: "nav.articles",
+    href: "/articles",
+    icon: "articles",
+    descriptionKey: "nav.articlesDesc",
+  },
+  {
+    label: "Devotions",
+    labelKey: "nav.devotions",
+    href: "/devotion",
+    icon: "devotions",
+    descriptionKey: "nav.devotionsDesc",
+  },
+  {
+    label: "Maps",
+    labelKey: "nav.maps",
+    href: "/maps",
+    icon: "maps",
+    descriptionKey: "nav.mapsDesc",
+  },
+  {
+    label: "Prayers",
+    labelKey: "nav.prayers",
+    href: "/prayers",
+    icon: "prayers",
+    descriptionKey: "nav.prayersDesc",
+  },
+  {
+    label: "Notices",
+    labelKey: "nav.notices",
+    href: "/notices",
+    icon: "notices",
+    descriptionKey: "nav.noticesDesc",
+  },
+  {
+    label: "Quiz",
+    labelKey: "nav.quiz",
+    href: "/quiz",
+    icon: "quiz",
+    descriptionKey: "nav.quizDesc",
+  },
 ];
 
-/** Curated items for the mobile bottom bar (max ~5). */
-export const bottomNav: NavItem[] = [
-  { label: "गृह", href: "/", icon: Home },
-  { label: "बाइबल", href: "#", icon: BookOpen },
-  { label: "संगीत", href: "#", icon: Music },
-  { label: "समुदाय", href: "#", icon: Users },
-  { label: "सेटिङ", href: "#", icon: Settings },
-];
+/**
+ * Quick-access cards for the home page — every feature except Home itself.
+ * Derived from `mainNav` so the header and the home cards can never drift.
+ */
+export const homeQuickAccess: NavItem[] = mainNav.filter(
+  (item) => item.href !== "/",
+);
 
 export const footerGroups: FooterLinkGroup[] = [
   {
     title: "Explore",
+    titleKey: "footer.explore",
     links: [
-      { label: "बाइबल", href: "#" },
-      { label: "संगीत", href: "#" },
-      { label: "लेखहरू", href: "#" },
+      { label: "Bible", labelKey: "nav.bible", href: "/bible" },
+      { label: "Music", labelKey: "nav.music", href: "/music" },
+      { label: "Playlists", labelKey: "nav.playlists", href: "/playlists" },
+      { label: "Articles", labelKey: "nav.articles", href: "/articles" },
+      { label: "Devotions", labelKey: "nav.devotions", href: "/devotion" },
+      { label: "Maps", labelKey: "nav.maps", href: "/maps" },
+      { label: "Quiz", labelKey: "nav.quiz", href: "/quiz" },
     ],
   },
   {
     title: "Community",
+    titleKey: "footer.community",
     links: [
-      { label: "सूचनाहरू", href: "#" },
-      { label: "छलफल", href: "#" },
-      { label: "प्रार्थना", href: "#" },
+      { label: "Prayer Requests", labelKey: "footer.prayerRequests", href: "/prayers" },
+      { label: "Notices", labelKey: "nav.notices", href: "/notices" },
+      { label: "Songs", labelKey: "footer.songs", href: "/songs" },
     ],
   },
   {
-    title: "Resources",
+    title: "Site",
+    titleKey: "footer.site",
     links: [
-      { label: "क्विज", href: "#" },
-      { label: "सेटिङ", href: "#" },
-      { label: "मद्दत", href: "#" },
+      // About / Privacy / Contact land on the home page until dedicated
+      // pages exist (they are intentionally real, never `"#"`).
+      { label: "About", labelKey: "footer.about", href: "/" },
+      { label: "Privacy", labelKey: "footer.privacy", href: "/" },
+      { label: "Contact", labelKey: "footer.contact", href: "/" },
+      { label: "GitHub", labelKey: "footer.github", href: siteConfig.links.github },
     ],
   },
 ];

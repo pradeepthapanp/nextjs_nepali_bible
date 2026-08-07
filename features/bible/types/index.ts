@@ -20,3 +20,4 @@ export * from "./audio";
 export * from "./bookmark";
 export * from "./dictionary";
 export * from "./deep-link";
+export * from "./interaction";

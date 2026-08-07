@@ -49,3 +49,70 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Article reader content — the base typography for sanitized article HTML
+ * (rendered by `ArticleContent` / `PreviewPanel`). Font size / line height /
+ * alignment / family are applied inline by the component; this layer keeps the
+ * Quill-generated HTML readable (headings, paragraphs, images, links, lists).
+ */
+.article-content,
+.devotion-content {
+  overflow-wrap: break-word;
+}
+.article-content > *:first-child,
+.devotion-content > *:first-child {
+  margin-top: 0;
+}
+.article-content > *:last-child,
+.devotion-content > *:last-child {
+  margin-bottom: 0;
+}
+.article-content p,
+.devotion-content p {
+  margin: 0 0 var(--reader-paragraph-spacing, 0.5em);
+}
+.article-content h1,
+.article-content h2,
+.article-content h3,
+.article-content h4,
+.devotion-content h1,
+.devotion-content h2,
+.devotion-content h3,
+.devotion-content h4 {
+  margin: 1.2em 0 0.5em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.article-content img,
+.devotion-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+.article-content a,
+.devotion-content a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-content blockquote,
+.devotion-content blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  margin: 1em 0;
+  color: var(--muted-foreground);
+}
+.article-content pre,
+.article-content code,
+.devotion-content pre,
+.devotion-content code {
+  font-family: var(--font-app-mono), monospace;
+}
+.article-content ul,
+.article-content ol,
+.devotion-content ul,
+.devotion-content ol {
+  padding-left: 1.5rem;
+  margin: 0.5em 0;
+}

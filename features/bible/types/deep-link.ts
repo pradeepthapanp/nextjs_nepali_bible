@@ -21,7 +21,15 @@ export type BibleDeepLink =
       chapter: number;
       versionIds: string[];
     }
-  | { kind: "search"; query: string; versionId?: string };
+  | {
+      kind: "search";
+      query: string;
+      versionId?: string;
+      /** Restrict search to one book (e.g. `?book=470`). */
+      bookNumber?: number;
+      /** Version short code (e.g. `?version=nnrv`); resolved via `useBibles`. */
+      versionShortCode?: string;
+    };
 
 /** Metadata needed to build a deep link (used by utils/deep-link.ts). */
 export interface DeepLinkContext {

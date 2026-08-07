@@ -42,7 +42,12 @@ export function buildBibleUrl(link: BibleDeepLink): string {
     case "parallel":
       return `/bible/${link.bookNumber}/${link.chapter}?p=${link.versionIds.join(",")}`;
     case "search":
-      return `/bible/search?q=${encodeURIComponent(link.query)}`;
+      return withQuery("/bible/search", {
+        q: link.query,
+        book: link.bookNumber !== undefined ? String(link.bookNumber) : undefined,
+        version: link.versionShortCode,
+        v: link.versionId,
+      });
   }
 }
 
@@ -55,10 +60,21 @@ export function parseBibleUrl(
   const params = new URLSearchParams(search);
   const versionId = params.get("v") ?? undefined;
 
-  // /bible/search?q=
+  // /bible/search?q=...&book=...&version=...&v=...
   if (pathname === "/bible/search" || pathname.startsWith("/bible/search/")) {
-    const query = params.get("q");
-    return query ? { kind: "search", query, versionId } : null;
+    const query = params.get("q") ?? "";
+    const bookRaw = params.get("book");
+    const bookNumber =
+      bookRaw && Number.isInteger(Number(bookRaw))
+        ? Number(bookRaw)
+        : undefined;
+    return {
+      kind: "search",
+      query,
+      bookNumber,
+      versionShortCode: params.get("version") ?? undefined,
+      versionId,
+    };
   }
 
   const segments = pathname

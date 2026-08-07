@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Languages } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/utils/cn";
@@ -46,6 +47,7 @@ export function LanguageSwitcher({
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const mounted = useMounted();
+  const t = useTranslations("nav");
 
   const current = locales.find((locale) => locale.value === value) ?? locales[0];
 
@@ -94,7 +96,7 @@ export function LanguageSwitcher({
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Language"
+        aria-label={t("language")}
         className={className}
       />
     );
@@ -106,7 +108,7 @@ export function LanguageSwitcher({
         variant="ghost"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Select language"
+        aria-label={t("selectLanguage")}
         onClick={() => setOpen((value) => !value)}
         className="gap-1.5 px-2.5"
       >
@@ -125,7 +127,7 @@ export function LanguageSwitcher({
         {open ? (
           <motion.ul
             role="listbox"
-            aria-label="Language"
+            aria-label={t("language")}
             className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg"
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}

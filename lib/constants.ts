@@ -23,3 +23,10 @@ export const DEFAULT_QUERY_STALE_TIME = 60_000;
 
 /** Default number of retries for failed TanStack Query fetches. */
 export const DEFAULT_QUERY_RETRY_COUNT = 1;
+
+/**
+ * App version — mirrors the `version` in `package.json` (kept in sync
+ * manually so the Settings → About page reuses the package metadata without
+ * bundling the whole manifest into the client).
+ */
+export const APP_VERSION = "0.1.0";

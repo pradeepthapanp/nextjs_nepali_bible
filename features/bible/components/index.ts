@@ -13,3 +13,7 @@ export * from "./chapter";
 export * from "./reader";
 export * from "./chapter-viewer";
 export * from "./bible-home";
+export * from "./bible-route-dispatcher";
+export * from "./audio-bible-page";
+export * from "./selection";
+export * from "./interaction";

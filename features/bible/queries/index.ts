@@ -7,6 +7,7 @@ export * from "./use-chapter";
 export * from "./use-verse";
 export * from "./use-cross-references";
 export * from "./use-commentary";
+export * from "./use-content-availability";
 export * from "./use-search-verses";
 export * from "./use-highlights";
 export * from "./use-notes";

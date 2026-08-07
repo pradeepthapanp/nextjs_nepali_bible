@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDialog } from "@/hooks/use-dialog";
+import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/utils/cn";
 
 export interface ResponsiveDrawerProps {
@@ -25,6 +27,13 @@ export interface ResponsiveDrawerProps {
  * and marked `aria-modal` so assistive tech treats it as a dialog. The app
  * header uses it for the mobile navigation menu; features can reuse it for
  * filter panels and quick-actions.
+ *
+ * Rendered through a PORTAL to `<body>` so its `position: fixed` overlay is
+ * never constrained by an ancestor containing block — e.g. a `backdrop-blur`
+ * header makes itself the containing block for fixed descendants, which
+ * collapsed the mobile nav drawer to the header's height (64px) instead of
+ * the viewport. Portaling to `<body>` guarantees a full-height overlay no
+ * matter where the drawer is composed.
  */
 export function ResponsiveDrawer({
   open,
@@ -37,6 +46,7 @@ export function ResponsiveDrawer({
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const titleId = React.useId();
+  const mounted = useMounted();
 
   const { onClose } = useDialog({
     open,
@@ -48,7 +58,7 @@ export function ResponsiveDrawer({
   const isLeft = side === "left";
   const hiddenX = isLeft ? "-100%" : "100%";
 
-  return (
+  const drawer = (
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -100,4 +110,8 @@ export function ResponsiveDrawer({
       ) : null}
     </AnimatePresence>
   );
+
+  // Hydration-safe: render nothing until mounted, then portal to <body>.
+  if (!mounted) return null;
+  return createPortal(drawer, document.body);
 }

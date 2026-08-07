@@ -45,14 +45,58 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // -------------------------------------------------------------------------
-  // TODO(features/auth): add route guards here during feature migration, e.g.
+  // Authentication route guards.
   //
-  // if (!user && request.nextUrl.pathname.startsWith("/account")) {
-  //   return NextResponse.redirect(new URL("/signin", request.url));
-  // }
+  // The client-side `AuthGate`/`AdminGate` keep protected surfaces honest
+  // during client navigation; these server-side guards handle full page loads
+  // and direct deep links.
+  // -------------------------------------------------------------------------
+
+  const pathname = request.nextUrl.pathname;
+
+  // 1. Protected (signed-in) surfaces: /profile, /admin and the Settings
+  //    account/profile sections require a session.
+  const isProtected =
+    pathname === "/profile" ||
+    pathname.startsWith("/admin") ||
+    pathname === "/settings/profile" ||
+    pathname === "/settings/account";
+  if (isProtected && !user) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/sign-in";
+    redirectUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // 2. Admin surfaces additionally require the admin/editor role (checked via
+  // the profiles table through the server client). Non-admins land on /profile.
+  if (user && pathname.startsWith("/admin")) {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = data?.role;
+      if (role !== "admin" && role !== "editor") {
+        return NextResponse.redirect(new URL("/profile", request.url));
+      }
+    } catch {
+      // Role check unavailable (e.g. no profile row / network) — let the
+      // client AdminGate decide rather than blocking the request.
+    }
+  }
+
+  // 3. Already signed in: skip the auth entry pages (the Flutter AuthStatePage
+  // renders the signed-in surface instead of the sign-in form).
+  if (user && (pathname === "/sign-in" || pathname === "/sign-up")) {
+    return NextResponse.redirect(new URL("/profile", request.url));
+  }
   // -------------------------------------------------------------------------
 
   return supabaseResponse;

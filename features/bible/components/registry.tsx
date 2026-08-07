@@ -21,6 +21,7 @@ import type {
   VerseNumberNode,
   WordsOfJesusNode,
 } from "@features/bible/parsers";
+import type { Reference } from "../types";
 import { setDefaultVerseRenderer } from "./context";
 import {
   VerseCrossReferenceMarker,
@@ -41,6 +42,19 @@ import {
 } from "./verse";
 
 /**
+ * Options for `createVerseRendererRegistry`.
+ *
+ * `onOpenReference` lets callers open the passage a parsed reference points to
+ * (commentary `<reflink>` targets and cross-reference markers that carry a
+ * resolved reference). When omitted, those nodes render disabled — the same
+ * presentational behaviour as before — so callers opt in per surface.
+ */
+export interface VerseRendererRegistryOptions {
+  /** Opens a parsed reference target (or null when the node has none). */
+  onOpenReference?: (target: Reference | null) => void;
+}
+
+/**
  * createVerseRendererRegistry — wires every engine node type to its React
  * component.
  *
@@ -49,7 +63,10 @@ import {
  * The returned registry implements the UI-agnostic `RendererRegistry<ReactNode>`
  * from `parsers/renderer` and can be passed to `<VerseRenderProvider>`.
  */
-export function createVerseRendererRegistry(): RendererRegistry<React.ReactNode> {
+export function createVerseRendererRegistry(
+  options: VerseRendererRegistryOptions = {},
+): RendererRegistry<React.ReactNode> {
+  const { onOpenReference } = options;
   const registry = createRendererRegistry<React.ReactNode>((text) => (
     <span>{text}</span>
   ));
@@ -85,7 +102,16 @@ export function createVerseRendererRegistry(): RendererRegistry<React.ReactNode>
   });
   registry.registerInline({
     match: (node) => node.type === "reference-link",
-    render: (node) => <VerseReferenceChip node={node as ReferenceLinkNode} />,
+    render: (node) => (
+      <VerseReferenceChip
+        node={node as ReferenceLinkNode}
+        onOpen={
+          onOpenReference
+            ? (link) => onOpenReference(link.target)
+            : undefined
+        }
+      />
+    ),
   });
   registry.registerInline({
     match: (node) => node.type === "search-highlight",
@@ -105,7 +131,28 @@ export function createVerseRendererRegistry(): RendererRegistry<React.ReactNode>
   });
   registry.registerInline({
     match: (node) => node.type === "cross-reference-marker",
-    render: (node) => <VerseCrossReferenceMarker node={node as CrossReferenceMarkerNode} />,
+    render: (node) => (
+      <VerseCrossReferenceMarker
+        node={node as CrossReferenceMarkerNode}
+        onOpen={
+          onOpenReference
+            ? (marker) =>
+                onOpenReference(
+                  marker.reference
+                    ? {
+                        bookNumber: marker.reference.bookTo,
+                        chapter: marker.reference.chapterTo,
+                        verse:
+                          marker.reference.verseToStart ??
+                          marker.reference.verseToEnd ??
+                          1,
+                      }
+                    : null,
+                )
+            : undefined
+        }
+      />
+    ),
   });
   registry.registerInline({
     match: (node) => node.type === "superscript",

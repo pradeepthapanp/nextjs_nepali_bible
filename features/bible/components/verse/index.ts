@@ -11,7 +11,5 @@ export * from "./verse-inline-note";
 export * from "./verse-commentary-marker";
 export * from "./verse-cross-reference-marker";
 export * from "./verse-reference-chip";
-export * from "./verse-selection-overlay";
-export * from "./verse-actions";
 export * from "./verse-container";
 export * from "./supporting";

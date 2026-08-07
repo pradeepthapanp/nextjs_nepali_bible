@@ -3,10 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Menu } from "lucide-react";
 import { AppContainer } from "@/components/ui/app-container";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
+import { FeatureIcon } from "@/components/icons";
 import { LanguageSwitcher } from "@/components/navigation/language-switcher";
 import { ResponsiveDrawer } from "@/components/navigation/responsive-drawer";
 import { ThemeToggle } from "@/components/navigation/theme-toggle";
@@ -36,6 +38,10 @@ export function AppHeader({
 }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const pathname = usePathname();
+  const t = useTranslations();
+
+  const itemLabel = (item: NavItem) =>
+    item.labelKey ? t(item.labelKey) : item.label;
 
   return (
     <header
@@ -76,7 +82,7 @@ export function AppHeader({
                       : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
                   )}
                 >
-                  {item.label}
+                  {itemLabel(item)}
                 </Link>
               );
             })}
@@ -115,16 +121,20 @@ export function AppHeader({
                 )}
               >
                 {item.icon ? (
-                  <item.icon className="size-5" aria-hidden />
+                  <FeatureIcon name={item.icon} aria-hidden />
                 ) : null}
-                {item.label}
+                {itemLabel(item)}
               </Link>
             );
           })}
         </nav>
         <div className="mt-4 flex items-center gap-2 border-t pt-4">
-          <ThemeToggle />
-          <LanguageSwitcher />
+          {actions ?? (
+            <>
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </>
+          )}
         </div>
       </ResponsiveDrawer>
     </header>

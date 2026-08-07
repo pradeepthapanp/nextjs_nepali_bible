@@ -20,7 +20,11 @@ export interface VersePoetryProps {
 export function VersePoetry({ block, className }: VersePoetryProps) {
   const { renderInline } = useVerseRender();
   return (
-    <div data-block="poetry" className={cn("space-y-1", className)}>
+    <div
+      data-block="poetry"
+      className={cn("space-y-1", className)}
+      style={{ marginBottom: "var(--reader-paragraph-spacing)" }}
+    >
       {block.lines.map((line, index) => (
         <p key={index} className="ps-6 text-pretty">
           {renderInlineChildren(line, renderInline)}

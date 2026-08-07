@@ -79,6 +79,41 @@
   --ring: oklch(0.72 0.055 60);
 }
 
+/* Reading theme — "lamp" (warm sepia, from the Flutter `AppThemeMode.lampLight`:
+   background #F3E8C8, surface #F8F0D8, primary #8D6E63, text #3E2723). Applied
+   as a class on <html> by the reader appearance hook, so every reader surface
+   (BibleHome, ChapterViewer, search results, selection toolbar/context menu)
+   repaints instantly. Declared after `.dark` and `.dark:not(.reader-theme-lamp)`
+   keeps the dark palette out of the way when lamp is active. */
+html.reader-theme-lamp,
+html.reader-theme-lamp .dark {
+  --background: oklch(0.945 0.03 85);
+  --foreground: oklch(0.32 0.035 40);
+  --card: oklch(0.965 0.02 85);
+  --card-foreground: oklch(0.32 0.035 40);
+  --popover: oklch(0.965 0.02 85);
+  --popover-foreground: oklch(0.32 0.035 40);
+  --primary: oklch(0.55 0.06 55);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --secondary: oklch(0.8 0.05 75);
+  --secondary-foreground: oklch(0.4 0.04 40);
+  --muted: oklch(0.925 0.025 85);
+  --muted-foreground: oklch(0.52 0.04 55);
+  --accent: oklch(0.9 0.04 80);
+  --accent-foreground: oklch(0.4 0.04 40);
+  --destructive: oklch(0.577 0.245 27.3);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.86 0.03 80);
+  --input: oklch(0.86 0.03 80);
+  --ring: oklch(0.55 0.06 55);
+}
+
+/* The reader surfaces expose this custom property for paragraph spacing; the
+   fallback keeps paragraphs nicely separated even before a surface sets it. */
+:root {
+  --reader-paragraph-spacing: 0.5em;
+}
+
 /* Map semantic colors into Tailwind utilities (inline → runtime switching) */
 @theme inline {
   --color-background: var(--background);

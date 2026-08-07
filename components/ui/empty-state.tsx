@@ -1,9 +1,13 @@
-import { Inbox, type LucideIcon } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 export interface EmptyStateProps {
-  /** Icon rendered in the circular badge (defaults to an inbox). */
-  icon?: LucideIcon;
+  /**
+   * Icon rendered in the circular badge (defaults to an inbox). Accepts any
+   * component callable with `className`/`aria-hidden` — Lucide icons or the
+   * shared `FeatureIcon` wrappers.
+   */
+  icon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   title: React.ReactNode;
   description?: React.ReactNode;
   /** Optional action(s) rendered below the description (e.g. a Button). */

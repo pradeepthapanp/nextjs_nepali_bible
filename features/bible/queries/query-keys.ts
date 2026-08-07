@@ -35,9 +35,15 @@ export const bibleKeys = {
   commentary: (commentaryId: string, bookNumber: number, chapter: number) =>
     [...bibleKeys.all, "commentary", commentaryId, bookNumber, chapter] as const,
   commentaryVersions: () => [...bibleKeys.all, "commentaries"] as const,
+  commentaryHasContent: (commentaryId: string) =>
+    [...bibleKeys.all, "commentaries", commentaryId, "has-content"] as const,
+  versionHasVerses: (versionId: string) =>
+    [...bibleKeys.versions(), versionId, "has-verses"] as const,
 
   search: (query: string, filters: SearchFilters) =>
     [...bibleKeys.all, "search", query, filters] as const,
+  searchInfinite: (query: string, filters: SearchFilters) =>
+    [...bibleKeys.all, "search", "infinite", query, filters] as const,
 
   highlights: {
     all: () => [...bibleKeys.all, "highlights"] as const,

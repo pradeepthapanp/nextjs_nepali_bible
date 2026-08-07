@@ -68,6 +68,11 @@ export function createDefaultRegistry(): TagRegistry {
     { type: "superscript", children },
   ]);
 
+  // Footnotes (`<f>…</f>`) — ignored: the footnote marker/content is not
+  // rendered in the verse (matches the product decision to drop footnotes).
+  registry.register("f", () => []);
+  registry.register("fn", () => []);
+
   // Inline note — styled dimmer (matches Flutter `n` styling).
   registry.register("n", ({ children }) => [
     { type: "note", text: flattenText(children) },
@@ -84,10 +89,15 @@ export function createDefaultRegistry(): TagRegistry {
   // Inline title run.
   registry.register("t", ({ children }) => [{ type: "title", children }]);
 
-  // Commentary reference link (`<reflink target="Gen 1:1">…</reflink>`).
-  registry.register("reflink", ({ children, options }) => {
+  // Commentary reference link (`<reflink target="Psa 14:1">भजनसंग्रह १४:१</reflink>`).
+  // Resolve from the `target` attribute when present (English short name +
+  // Arabic digits, exactly like Flutter `CmtParser.openReference` reads
+  // `ctx.attributes['target']`); the Nepali label is display-only and falls
+  // back only when no target attribute exists.
+  registry.register("reflink", ({ children, attrs, options }) => {
     const label = flattenText(children);
-    const target = options.referenceResolver?.(label) ?? null;
+    const targetSource = attrs.target?.trim() || label;
+    const target = options.referenceResolver?.(targetSource) ?? null;
     return [{ type: "reference-link", target, label }];
   });
 

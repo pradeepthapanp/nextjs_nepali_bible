@@ -1,15 +1,31 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { BookOpen } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { DEFAULT_BIBLE_VERSION } from "../constants";
-import { useAudioBible, useDeepLink, useReadingPosition } from "../hooks";
-import { useBible, useBooks, useChapterContent } from "../queries";
-import { useReaderSettings, useReadingStore } from "../store";
-import { clampChapter, nextChapter, prevChapter } from "../utils";
+import { useAudioBible, useBibleNavigation, useDeepLink } from "../hooks";
+import {
+  useBible,
+  useBibles,
+  useBooks,
+  useChapterContent,
+  useCommentaryHasContent,
+  useCommentaryVersions,
+  useVersionHasVerses,
+} from "../queries";
+import {
+  useBibleSelectionStore,
+  useReaderSettings,
+  useReadingStore,
+  useVerseInteractionStore,
+} from "../store";
+import { VerseInteractionHost } from "./interaction";
+import { BibleSelectionDialog } from "./selection";
+import { clampChapter, nextChapter, prevChapter, readerFontStack } from "../utils";
 import {
   bibleLinkPosition,
   bibleLinkVersionId,
@@ -51,8 +67,9 @@ export interface BibleHomeProps {
 }
 
 export function BibleHome({ panels }: BibleHomeProps) {
+  const t = useTranslations("bible");
   // 1. Route parameters — parsed from the URL; null off /bible routes.
-  const { currentLink, navigate } = useDeepLink();
+  const { currentLink } = useDeepLink();
   // Fallback reading state (used when no /bible route is active; useDeepLink
   // keeps this store in sync with the URL).
   const {
@@ -69,6 +86,14 @@ export function BibleHome({ panels }: BibleHomeProps) {
   const { data: books } = useBooks();
   const versionId = bibleLinkVersionId(currentLink) ?? storeVersionId;
   const { data: version } = useBible(versionId);
+  const { data: versions } = useBibles();
+  const { data: commentaries } = useCommentaryVersions();
+  // Lightweight content checks — detect versions/commentaries whose data table
+  // is empty (e.g. NEPS / MacArthur not imported yet) so the UI can say so.
+  const { data: versionHasVerses } = useVersionHasVerses(versionId);
+  const { data: commentaryHasContent } = useCommentaryHasContent(
+    settings.commentaryId,
+  );
 
   // Effective position: route params win, else the store; clamped to canon.
   const position = useMemo<BibleLinkPosition>(() => {
@@ -81,6 +106,13 @@ export function BibleHome({ panels }: BibleHomeProps) {
     return { ...clampChapter(base, books), verse: base.verse };
   }, [currentLink, books, bookNumber, chapter, verse]);
 
+  // Verse Interaction: changing chapter / book / Bible version clears the
+  // current selection (mirrors Flutter's auto-clear in VerseSelectionNotifier).
+  const clearInteraction = useVerseInteractionStore((state) => state.clear);
+  useEffect(() => {
+    clearInteraction();
+  }, [clearInteraction, position.bookNumber, position.chapter, versionId]);
+
   const chapterQuery = useChapterContent(
     versionId,
     position.bookNumber,
@@ -88,12 +120,18 @@ export function BibleHome({ panels }: BibleHomeProps) {
     {
       includeCrossRefs: settings.showCrossReferences,
       includeCommentary: settings.showComments,
+      commentaryId: settings.commentaryId,
       enabled: Boolean(versionId && position.bookNumber && position.chapter),
     },
   );
 
-  const { openChapter } = useReadingPosition();
-  const { isPlaying, toggle, playChapter } = useAudioBible();
+  const { goTo, goToVersion } = useBibleNavigation();
+  const openSelection = useBibleSelectionStore((state) => state.openDialog);
+  // Play audio for the chapter currently on screen (URL position wins).
+  const { isPlaying, toggle } = useAudioBible(
+    position.bookNumber,
+    position.chapter,
+  );
 
   const book = useMemo(
     () => books?.find((entry) => entry.bookNumber === position.bookNumber),
@@ -101,7 +139,8 @@ export function BibleHome({ panels }: BibleHomeProps) {
   );
 
   // 9/10/11. Navigation — targets computed with the shared pure utilities,
-  // then applied to the URL (history/deep link) and persisted (openChapter).
+  // then applied through `useBibleNavigation` (URL + history + persisted
+  // position + recents). Single navigation entry point — no duplication.
   const canGoPrevious = useMemo(
     () => Boolean(books && prevChapter(position, books)),
     [books, position],
@@ -111,32 +150,13 @@ export function BibleHome({ panels }: BibleHomeProps) {
     [books, position],
   );
 
-  const goTo = (target: { bookNumber: number; chapter: number }, nextVerse?: number) => {
-    openChapter(target.bookNumber, target.chapter, nextVerse);
-    navigate(
-      nextVerse
-        ? {
-            kind: "verse",
-            bookNumber: target.bookNumber,
-            chapter: target.chapter,
-            verse: nextVerse,
-            versionId,
-          }
-        : {
-            kind: "chapter",
-            bookNumber: target.bookNumber,
-            chapter: target.chapter,
-            versionId,
-          },
-    );
-  };
   const handlePrevious = () => {
     const target = books && prevChapter(position, books);
-    if (target) goTo(target);
+    if (target) goTo(target.bookNumber, target.chapter);
   };
   const handleNext = () => {
     const target = books && nextChapter(position, books);
-    if (target) goTo(target);
+    if (target) goTo(target.bookNumber, target.chapter);
   };
 
   // Settings → verse engine options (parser stays out of the page).
@@ -148,32 +168,33 @@ export function BibleHome({ panels }: BibleHomeProps) {
     [settings.redLetters, settings.showVerseNumbers],
   );
 
-  // 8. Audio indicator toggles play for the current chapter when stopped.
-  const handleAudioToggle = () => {
-    if (isPlaying) toggle();
-    else playChapter();
-  };
-
   // 4/5/6. Loading / error / empty states.
   let body: React.ReactNode;
   if (chapterQuery.isLoading) {
-    body = <LoadingState label="अध्याय लोड हुँदैछ…" />;
+    body = <LoadingState label={t("loadingChapter")} />;
   } else if (chapterQuery.isError) {
     body = (
       <ErrorState
-        title="अध्याय लोड गर्न सकिएन"
-        description="यो अध्याय पढ्ने क्रममा केही गडबड भयो। पुनः प्रयास गर्नुहोस्।"
+        title={t("couldntLoadChapter")}
+        description={t("couldntLoadChapterDesc")}
         onRetry={() => void chapterQuery.refetch()}
       />
     );
   } else if (!chapterQuery.data || chapterQuery.data.verses.length === 0) {
-    body = (
-      <EmptyState
-        icon={BookOpen}
-        title="यो अध्याय खाली छ"
-        description="यस स्थानमा पढ्न मिल्ने कुनै पद फेला परेन।"
-      />
-    );
+    body =
+      versionHasVerses === false ? (
+        <EmptyState
+          icon={BookOpen}
+          title={t("versionEmpty")}
+          description={t("versionEmptyDesc", { name: version?.name ?? "" })}
+        />
+      ) : (
+        <EmptyState
+          icon={BookOpen}
+          title={t("emptyChapter")}
+          description={t("emptyChapterDesc")}
+        />
+      );
   } else {
     // 7. Pass data into ChapterViewer (no rendering/parsing here).
     body = (
@@ -182,6 +203,28 @@ export function BibleHome({ panels }: BibleHomeProps) {
         version={version ?? DEFAULT_BIBLE_VERSION}
         books={books}
         parseOptions={parseOptions}
+        onOpenBook={() => openSelection("book")}
+        onOpenChapter={() => openSelection("chapter")}
+        // Reference links open the referenced passage in the reader (port of
+        // the Flutter `ReferenceVersesSheet` / `CmtParser.openReference`
+        // navigation). All three go through the single `goTo` entry point.
+        onOpenCommentary={(entry) =>
+          goTo(
+            entry.bookNumber,
+            entry.chapterNumberFrom ?? 1,
+            entry.verseNumberFrom ?? 1,
+          )
+        }
+        onOpenCrossReference={(reference) =>
+          goTo(
+            reference.bookTo,
+            reference.chapterTo,
+            reference.verseToStart ?? reference.verseToEnd ?? 1,
+          )
+        }
+        onOpenReference={(reference) =>
+          goTo(reference.bookNumber, reference.chapter, reference.verse ?? 1)
+        }
         onPreviousChapter={handlePrevious}
         onNextChapter={handleNext}
         canGoPrevious={canGoPrevious}
@@ -204,21 +247,33 @@ export function BibleHome({ panels }: BibleHomeProps) {
             />
             <AudioIndicator
               isPlaying={isPlaying}
-              onToggle={handleAudioToggle}
+              onToggle={toggle}
               disabled={!book}
             />
           </div>
           <ReaderToolbar
             fontSize={settings.fontSize}
             lineHeight={settings.lineHeight}
+            paragraphSpacing={settings.paragraphSpacing}
+            fontFamily={settings.fontFamily}
             alignment={settings.alignment}
+            theme={settings.theme}
             redLetters={settings.redLetters}
             showComments={settings.showComments}
             showCrossReferences={settings.showCrossReferences}
             showVerseNumbers={settings.showVerseNumbers}
+            versionId={versionId ?? DEFAULT_BIBLE_VERSION.id}
+            versions={versions ?? []}
+            onVersionChange={goToVersion}
+            commentaryId={settings.commentaryId}
+            commentaries={commentaries ?? []}
+            onCommentaryChange={settings.setCommentaryId}
             onFontSizeChange={settings.setFontSize}
             onLineHeightChange={settings.setLineHeight}
+            onParagraphSpacingChange={settings.setParagraphSpacing}
+            onFontFamilyChange={settings.setFontFamily}
             onAlignmentChange={settings.setAlignment}
+            onThemeChange={settings.setTheme}
             onRedLettersChange={settings.setRedLetters}
             onCommentsChange={settings.setShowComments}
             onCrossReferencesChange={settings.setShowCrossReferences}
@@ -227,14 +282,33 @@ export function BibleHome({ panels }: BibleHomeProps) {
         </div>
       </header>
 
+      {settings.showComments && commentaryHasContent === false ? (
+        <div className="mx-auto w-full max-w-6xl px-4 pt-4">
+          <p
+            role="status"
+            className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200"
+          >
+            {t("commentaryEmpty", {
+              name:
+                commentaries?.find((c) => c.id === settings.commentaryId)?.name ??
+                "",
+            })}
+          </p>
+        </div>
+      ) : null}
+
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <main
           className="min-w-0"
-          style={{
-            fontSize: settings.fontSize,
-            lineHeight: settings.lineHeight,
-            textAlign: settings.alignment,
-          }}
+          style={
+            {
+              fontSize: settings.fontSize,
+              lineHeight: settings.lineHeight,
+              textAlign: settings.alignment,
+              fontFamily: readerFontStack(settings.fontFamily),
+              "--reader-paragraph-spacing": `${settings.paragraphSpacing}px`,
+            } as React.CSSProperties
+          }
         >
           {body}
         </main>
@@ -244,6 +318,9 @@ export function BibleHome({ panels }: BibleHomeProps) {
           </aside>
         ) : null}
       </div>
+
+      <BibleSelectionDialog />
+      <VerseInteractionHost />
     </div>
   );
 }

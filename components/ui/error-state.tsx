@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
@@ -23,13 +24,17 @@ export interface ErrorStateProps {
  * Nepali copy and the retry affordance) stays consistent app-wide.
  */
 export function ErrorState({
-  title = "केही गडबड भयो",
-  description = "Something went wrong while loading this content.",
+  title,
+  description,
   error,
   onRetry,
   variant = "inline",
   className,
 }: ErrorStateProps) {
+  const t = useTranslations("common");
+  const resolvedTitle = title ?? t("error");
+  const resolvedDescription = description ?? t("errorDescription");
+
   return (
     <div
       role="alert"
@@ -43,15 +48,17 @@ export function ErrorState({
       <span className="grid size-12 place-items-center rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle className="size-6" aria-hidden />
       </span>
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      <h3 className="text-base font-semibold text-foreground">{resolvedTitle}</h3>
+      <p className="max-w-sm text-sm text-muted-foreground">{resolvedDescription}</p>
       {error?.digest ? (
-        <p className="text-xs text-muted-foreground">Error ID: {error.digest}</p>
+        <p className="text-xs text-muted-foreground">
+          {t("errorId", { id: error.digest })}
+        </p>
       ) : null}
       {onRetry ? (
         <Button variant="outline" onClick={onRetry} className="mt-2">
           <RotateCw className="size-4" aria-hidden />
-          Try again
+          {t("retry")}
         </Button>
       ) : null}
     </div>

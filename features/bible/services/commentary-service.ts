@@ -18,6 +18,8 @@ export interface CommentaryService {
     bookNumber: number,
     chapter: number,
   ): Promise<CommentaryEntry[]>;
+  /** Whether the commentary book has ANY entries (detects empty tables). */
+  hasContent(commentaryId: string): Promise<boolean>;
 }
 
 interface CommentaryRow {
@@ -100,5 +102,11 @@ export class SupabaseCommentaryService implements CommentaryService {
       .eq("book_number", bookNumber)
       .eq("chapter_number_from", chapter);
     return unwrap(response).map(mapCommentaryEntry);
+  }
+
+  async hasContent(commentaryId: string): Promise<boolean> {
+    const table = await this.tableForCommentary(commentaryId);
+    const response = await this.client.from(table).select("id").limit(1);
+    return (unwrap(response) as unknown[]).length > 0;
   }
 }

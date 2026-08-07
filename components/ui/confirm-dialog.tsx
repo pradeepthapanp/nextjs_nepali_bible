@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useDialog } from "@/hooks/use-dialog";
@@ -36,14 +37,17 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "default",
   loading = false,
   onConfirm,
   onCancel,
   className,
 }: ConfirmDialogProps) {
+  const t = useTranslations("common");
+  const resolvedConfirm = confirmLabel ?? t("confirm");
+  const resolvedCancel = cancelLabel ?? t("cancel");
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const confirmButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const titleId = React.useId();
@@ -119,7 +123,7 @@ export function ConfirmDialog({
                 onClick={handleCancel}
                 disabled={loading}
               >
-                {cancelLabel}
+                {resolvedCancel}
               </Button>
               <Button
                 ref={confirmButtonRef}
@@ -130,7 +134,7 @@ export function ConfirmDialog({
                 {loading ? (
                   <Spinner className="size-4" aria-hidden />
                 ) : null}
-                {confirmLabel}
+                {resolvedConfirm}
               </Button>
             </div>
           </motion.div>

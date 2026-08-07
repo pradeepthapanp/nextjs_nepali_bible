@@ -18,3 +18,8 @@ export interface ServiceError {
   code?: string;
   details?: unknown;
 }
+
+// Shared cross-feature contracts: profiles/roles (admin gating) and the upload
+// progress model. Feature-specific models stay in each feature module.
+export * from "./profile";
+export * from "./upload";

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { cn } from "@/utils/cn";
+import { useVerseInteraction } from "../hooks";
 import {
   formatCrossReferences,
   parseChapterContent,
@@ -18,7 +19,8 @@ import type {
   ChapterContent,
   CommentaryEntry,
   CrossReference,
-  HighlightColor,
+  Reference,
+  SelectedVerse,
 } from "@features/bible/types";
 import { toNepaliDigits } from "@features/bible/utils";
 import { ChapterContainer } from "./chapter/chapter-container";
@@ -27,11 +29,9 @@ import { ChapterHeader } from "./chapter/chapter-header";
 import { VerseRenderProvider, useVerseRender } from "./context";
 import { createVerseRendererRegistry } from "./registry";
 import {
-  VerseActions,
   VerseCommentaryMarker,
   VerseContainer,
   VerseReferenceChip,
-  VerseSelectionOverlay,
 } from "./verse";
 
 /**
@@ -49,16 +49,15 @@ import {
  *   - Produce the parser output through `parseChapterContent` (or accept a
  *     pre-computed `parsed` tree) and render it using ONLY the reusable
  *     verse/chapter components and the verse renderer registry.
- *   - Compose: `ChapterHeader`, per-verse `VerseContainer` (+ `VerseActions`,
- *     `VerseSelectionOverlay`, titles, commentary markers/blocks, cross-ref
- *     chips), and `ChapterFooter`.
+ *   - Compose: `ChapterHeader`, per-verse `VerseContainer` (+ titles,
+ *     commentary markers/blocks, cross-ref chips), and `ChapterFooter`.
+ *   - Delegate EVERY verse interaction (tap, Ctrl/Cmd, Shift, keyboard,
+ *     long-press, right-click) to `useVerseInteraction()`. `VerseContainer`
+ *     stays presentational and owns no interaction state.
  *
- * It does NOT fetch data, call Supabase, or call React Query. Business logic
- * (selection state, highlighting, notes, audio sync, navigation) lives in the
- * hooks and stores and is wired in through props/callbacks, so future features
- * (verse selection, multiple selection, highlights, notes, audio sync, search
- * highlighting, parallel Bible, commentary, dictionaries) require no changes
- * here.
+ * The selection toolbar / overlay are rendered once by `<VerseInteractionHost>`
+ * (mounted in BibleHome), so this component contains no overlay or action UI.
+ * It does NOT fetch data, call Supabase, or call React Query.
  */
 
 export interface ChapterViewerProps {
@@ -74,29 +73,16 @@ export interface ChapterViewerProps {
   parsed?: ParsedChapter;
   /** Custom renderer registry; defaults to the standard verse registry. */
   registry?: RendererRegistry<React.ReactNode>;
-
-  // ---- display state (future features) ----
-  /** Verse ids in the current selection (drives the selection overlay). */
-  selectedVerseIds?: ReadonlySet<string>;
-  /** Whole-verse highlights keyed by verse id. */
-  highlights?: Record<string, HighlightColor>;
   /** Verse id being read aloud (audio sync) — drives the active ring. */
   activeVerseId?: string;
-
-  // ---- callbacks (business logic lives in hooks) ----
-  /** Toggles verse selection (Enter/Space or click on the verse). */
-  onSelectVerse?: (verseId: string) => void;
   onOpenBook?: () => void;
   onOpenChapter?: () => void;
-  onCopyVerse?: (verseId: string) => void;
-  onHighlightVerse?: (verseId: string) => void;
-  onNoteVerse?: (verseId: string) => void;
-  onShareVerse?: (verseId: string) => void;
-  onBookmarkVerse?: (verseId: string) => void;
   /** Opens the commentary anchored at this verse's marker. */
   onOpenCommentary?: (entry: CommentaryEntry) => void;
   /** Opens the reference sheet for a cross-reference chip. */
   onOpenCrossReference?: (reference: CrossReference) => void;
+  /** Opens the passage a parsed reference points to (inline reflinks / cross-ref markers). */
+  onOpenReference?: (reference: Reference) => void;
   onPreviousChapter?: () => void;
   onNextChapter?: () => void;
   canGoPrevious?: boolean;
@@ -112,25 +98,29 @@ export function ChapterViewer({
   parseOptions,
   parsed,
   registry,
-  selectedVerseIds,
-  highlights,
   activeVerseId,
-  onSelectVerse,
   onOpenBook,
   onOpenChapter,
-  onCopyVerse,
-  onHighlightVerse,
-  onNoteVerse,
-  onShareVerse,
-  onBookmarkVerse,
   onOpenCommentary,
   onOpenCrossReference,
+  onOpenReference,
   onPreviousChapter,
   onNextChapter,
   canGoPrevious,
   canGoNext,
   className,
 }: ChapterViewerProps) {
+  // Verse Interaction System — every interaction is delegated here.
+  const {
+    selection,
+    setChapterOrder,
+    onVersePointerDown,
+    onVersePointerUp,
+    onVersePointerMove,
+    onVerseKeyDown,
+    onVerseContextMenu,
+  } = useVerseInteraction();
+
   // Single source of truth for the parser output: a caller-provided tree wins,
   // otherwise we derive it from `content` (pure, memoised).
   const chapter = useMemo(
@@ -142,9 +132,19 @@ export function ChapterViewer({
   // Resolve the renderer registry: a caller-provided registry wins, otherwise
   // the standard verse registry is created here so ChapterViewer is fully
   // self-contained (no reliance on module-load side effects from the barrel).
+  // The fallback registry wires inline reflinks / cross-ref markers to
+  // `onOpenReference` so they navigate to the referenced passage.
   const resolvedRegistry = useMemo(
-    () => registry ?? createVerseRendererRegistry(),
-    [registry],
+    () =>
+      registry ??
+      createVerseRendererRegistry({
+        onOpenReference: onOpenReference
+          ? (target) => {
+              if (target) onOpenReference(target);
+            }
+          : undefined,
+      }),
+    [registry, onOpenReference],
   );
 
   const bookName = useMemo(
@@ -153,6 +153,36 @@ export function ChapterViewer({
       String(content.bookNumber),
     [books, content.bookNumber],
   );
+
+  // SelectedVerse snapshots (data-layer-independent) + the chapter order used
+  // for Shift+click range extension.
+  const selectedVerses = useMemo<SelectedVerse[]>(
+    () =>
+      chapter.verses.map((item) => ({
+        id: item.verse.uuid,
+        bookNumber: item.verse.bookNumber,
+        chapter: item.verse.chapter,
+        verse: item.verse.verse,
+        text: item.verse.text,
+        bookName,
+      })),
+    [chapter, bookName],
+  );
+
+  const selectedVerseById = useMemo(
+    () => new Map(selectedVerses.map((verse) => [verse.id, verse])),
+    [selectedVerses],
+  );
+
+  const selectedIds = useMemo(
+    () => new Set(selection.verses.map((verse) => verse.id)),
+    [selection.verses],
+  );
+
+  // Keep the interaction system's chapter order in sync (Shift+click ranges).
+  useEffect(() => {
+    setChapterOrder(selectedVerses);
+  }, [setChapterOrder, selectedVerses]);
 
   const body = (
     <ChapterContainer dataVersionId={version.id} className={className}>
@@ -168,15 +198,14 @@ export function ChapterViewer({
           key={item.verse.uuid}
           item={item}
           books={books ?? []}
-          selected={selectedVerseIds?.has(item.verse.uuid) ?? false}
-          highlight={highlights?.[item.verse.uuid]}
           active={activeVerseId === item.verse.uuid}
-          onSelect={onSelectVerse}
-          onCopy={onCopyVerse}
-          onHighlight={onHighlightVerse}
-          onNote={onNoteVerse}
-          onShare={onShareVerse}
-          onBookmark={onBookmarkVerse}
+          selected={selectedIds.has(item.verse.uuid)}
+          selectedVerse={selectedVerseById.get(item.verse.uuid)}
+          onPointerDown={onVersePointerDown}
+          onPointerUp={onVersePointerUp}
+          onPointerMove={onVersePointerMove}
+          onKeyDown={onVerseKeyDown}
+          onContextMenu={onVerseContextMenu}
           onOpenCommentary={onOpenCommentary}
           onOpenCrossReference={onOpenCrossReference}
         />
@@ -207,14 +236,13 @@ interface ChapterVerseProps {
   item: ParsedChapter["verses"][number];
   books: Book[];
   selected: boolean;
-  highlight?: HighlightColor;
   active: boolean;
-  onSelect?: (verseId: string) => void;
-  onCopy?: (verseId: string) => void;
-  onHighlight?: (verseId: string) => void;
-  onNote?: (verseId: string) => void;
-  onShare?: (verseId: string) => void;
-  onBookmark?: (verseId: string) => void;
+  selectedVerse?: SelectedVerse;
+  onPointerDown?: (verse: SelectedVerse, event: React.PointerEvent) => void;
+  onPointerUp?: (verse: SelectedVerse, event: React.PointerEvent) => void;
+  onPointerMove?: (verse: SelectedVerse, event: React.PointerEvent) => void;
+  onKeyDown?: (verse: SelectedVerse, event: React.KeyboardEvent) => void;
+  onContextMenu?: (verse: SelectedVerse, event: React.MouseEvent) => void;
   onOpenCommentary?: (entry: CommentaryEntry) => void;
   onOpenCrossReference?: (reference: CrossReference) => void;
 }
@@ -223,21 +251,17 @@ function ChapterVerse({
   item,
   books,
   selected,
-  highlight,
   active,
-  onSelect,
-  onCopy,
-  onHighlight,
-  onNote,
-  onShare,
-  onBookmark,
+  selectedVerse,
+  onPointerDown,
+  onPointerUp,
+  onPointerMove,
+  onKeyDown,
+  onContextMenu,
   onOpenCommentary,
   onOpenCrossReference,
 }: ChapterVerseProps) {
   const { verse, tree, titles, commentary, crossReferences } = item;
-
-  const hasActions =
-    Boolean(onCopy || onHighlight || onNote || onShare || onBookmark);
 
   return (
     <div
@@ -250,33 +274,31 @@ function ChapterVerse({
       <VerseContainer
         tree={tree}
         verseId={verse.uuid}
-        highlight={highlight}
         selected={selected}
-        onSelect={onSelect ? () => onSelect(verse.uuid) : undefined}
-        actions={
-          hasActions ? (
-            <div className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-              <VerseActions
-                onCopy={onCopy ? () => onCopy(verse.uuid) : undefined}
-                onHighlight={onHighlight ? () => onHighlight(verse.uuid) : undefined}
-                onNote={onNote ? () => onNote(verse.uuid) : undefined}
-                onShare={onShare ? () => onShare(verse.uuid) : undefined}
-                onBookmark={onBookmark ? () => onBookmark(verse.uuid) : undefined}
-              />
-            </div>
-          ) : undefined
+        onPointerDown={
+          selectedVerse && onPointerDown
+            ? (event) => onPointerDown(selectedVerse, event)
+            : undefined
         }
-        overlay={
-          selected ? (
-            <VerseSelectionOverlay
-              open
-              onCopy={onCopy ? () => onCopy(verse.uuid) : undefined}
-              onHighlight={onHighlight ? () => onHighlight(verse.uuid) : undefined}
-              onNote={onNote ? () => onNote(verse.uuid) : undefined}
-              onShare={onShare ? () => onShare(verse.uuid) : undefined}
-              onClose={onSelect ? () => onSelect(verse.uuid) : undefined}
-            />
-          ) : undefined
+        onPointerUp={
+          selectedVerse && onPointerUp
+            ? (event) => onPointerUp(selectedVerse, event)
+            : undefined
+        }
+        onPointerMove={
+          selectedVerse && onPointerMove
+            ? (event) => onPointerMove(selectedVerse, event)
+            : undefined
+        }
+        onKeyDown={
+          selectedVerse && onKeyDown
+            ? (event) => onKeyDown(selectedVerse, event)
+            : undefined
+        }
+        onContextMenu={
+          selectedVerse && onContextMenu
+            ? (event) => onContextMenu(selectedVerse, event)
+            : undefined
         }
       />
 

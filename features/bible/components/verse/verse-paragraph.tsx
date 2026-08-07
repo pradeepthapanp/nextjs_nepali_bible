@@ -20,7 +20,11 @@ export interface VerseParagraphProps {
 export function VerseParagraph({ block, className }: VerseParagraphProps) {
   const { renderInline } = useVerseRender();
   return (
-    <p data-block="paragraph" className={cn("text-pretty", className)}>
+    <p
+      data-block="paragraph"
+      className={cn("text-pretty", className)}
+      style={{ marginBottom: "var(--reader-paragraph-spacing)" }}
+    >
       {renderInlineChildren(block.children, renderInline)}
     </p>
   );

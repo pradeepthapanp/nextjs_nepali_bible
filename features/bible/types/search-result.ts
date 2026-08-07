@@ -18,6 +18,12 @@ export interface SearchFilters {
   language?: "ne" | "en";
   priority?: SearchPriority;
   limit?: number;
+  /** Pagination offset (number of already-loaded rows); for infinite scroll. */
+  offset?: number;
+  /** Search every Bible version instead of only the selected one. */
+  allVersions?: boolean;
+  /** Restrict results to a single book. */
+  bookNumber?: number;
 }
 
 /** One verse match. */

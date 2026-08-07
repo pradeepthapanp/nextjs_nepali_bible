@@ -51,27 +51,39 @@ export class SupabaseSearchService implements SearchService {
     if (!trimmed) return [];
 
     const limit = filters.limit ?? SEARCH_MAX_RESULTS;
+    const offset = filters.offset ?? 0;
+    // `range` is 0-based inclusive in postgrest-js (no public `offset()` here).
+    const rangeFrom = offset;
+    const rangeTo = offset + limit - 1;
 
-    // Resolve the tables to search (primary = selected version).
+    // Resolve the tables to search: the selected version by default, or ALL
+    // version tables when `allVersions` is set (the "all versions" scope).
     const versions = await this.bible.getVersions();
     const primary =
       versions.find((version) => version.id === filters.versionId) ??
       DEFAULT_BIBLE_VERSION;
 
-    const tables: BibleVersion[] = [primary];
-    if (filters.priority === "english") {
-      const english = versions.find((version) => version.language === "en");
-      if (english && english.id !== primary.id) tables.unshift(english);
+    let tables: BibleVersion[];
+    if (filters.allVersions) {
+      tables = versions;
+    } else {
+      tables = [primary];
+      if (filters.priority === "english") {
+        const english = versions.find((version) => version.language === "en");
+        if (english && english.id !== primary.id) tables.unshift(english);
+      }
     }
 
-    // Restrict to a testament when requested (book-code ranges).
+    // Restrict to a testament or a single book (book-code ranges).
     const books = await this.bible.getBooks();
     const bookNumbers =
-      filters.testament && filters.testament !== "all"
-        ? books
-            .filter((book) => book.testament === filters.testament)
-            .map((book) => book.bookNumber)
-        : undefined;
+      filters.bookNumber !== undefined
+        ? [filters.bookNumber]
+        : filters.testament && filters.testament !== "all"
+          ? books
+              .filter((book) => book.testament === filters.testament)
+              .map((book) => book.bookNumber)
+          : undefined;
 
     const rows: SearchableRow[] = [];
     for (const version of tables) {
@@ -86,7 +98,7 @@ export class SupabaseSearchService implements SearchService {
         .order("book_number")
         .order("chapter")
         .order("verse")
-        .limit(limit);
+        .range(rangeFrom, rangeTo);
       const data = unwrap(response) as SearchableRow[];
       rows.push(...data.map((row) => ({ ...row, __version: version })));
     }

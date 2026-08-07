@@ -42,6 +42,8 @@ export interface BibleService {
     bookNumber: number,
     chapter: number,
   ): Promise<VerseTitle[]>;
+  /** Whether the version has ANY verses (detects empty version tables). */
+  hasVerses(versionId: string): Promise<boolean>;
 }
 
 /* Row shapes as returned by Supabase (snake_case column names). */
@@ -191,6 +193,12 @@ export class SupabaseBibleService implements BibleService {
       .eq("chapter", chapter)
       .order("verse");
     return unwrap(response).map(mapVerse);
+  }
+
+  async hasVerses(versionId: string): Promise<boolean> {
+    const table = await this.tableForVersion(versionId);
+    const response = await this.client.from(table).select("id").limit(1);
+    return (unwrap(response) as unknown[]).length > 0;
   }
 
   async getVerse(

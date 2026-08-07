@@ -14,3 +14,6 @@ export const SEARCH_PRIORITIES: SearchPriority[] = ["nepali", "english"];
 
 /** Default result limit (the commented-out Flutter search used `maxResults = 100`). */
 export const SEARCH_MAX_RESULTS = 100;
+
+/** Infinite-scroll page size (each "load more" fetches this many rows). */
+export const SEARCH_PAGE_SIZE = SEARCH_DEFAULT_LIMIT;

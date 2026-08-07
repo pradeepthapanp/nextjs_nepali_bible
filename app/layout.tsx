@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { Geist_Mono, Noto_Sans_Devanagari } from "next/font/google";
+import { GlobalAudioPlayer } from "@/components/audio/global-audio-player";
+import { SiteNav } from "@/components/navigation/site-nav";
 import { SkipLink } from "@/components/ui/skip-link";
 import { Providers } from "@/providers/providers";
 import { siteConfig } from "@/lib/site";
+import "@fortawesome/fontawesome-svg-core/styles.css";
 import "@/styles/globals.css";
 
 const notoSansDevanagari = Noto_Sans_Devanagari({
@@ -25,6 +30,11 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   keywords: siteConfig.keywords,
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/logo/app-icon.png",
+    apple: "/icons/app-icon.png",
+  },
   authors: [{ name: siteConfig.author }],
   creator: siteConfig.author,
   openGraph: {
@@ -34,11 +44,20 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: siteConfig.name,
     description: siteConfig.description,
+    images: [
+      {
+        url: "/images/app-feature.png",
+        width: 1024,
+        height: 500,
+        alt: siteConfig.name,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.name,
     description: siteConfig.description,
+    images: ["/images/app-feature.png"],
   },
   robots: {
     index: true,
@@ -55,20 +74,31 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Application localization — resolve the persisted locale (cookie) and its
+  // message catalog for SSR + client components.
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="ne"
+      lang={locale}
       suppressHydrationWarning
       className={`${notoSansDevanagari.variable} ${geistMono.variable} font-sans`}
     >
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        <SkipLink />
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages}>
+          <SkipLink />
+          <Providers>
+            <SiteNav />
+            {children}
+            <GlobalAudioPlayer />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
