@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -12,7 +13,11 @@ import {
 } from "@/components/related/related-links";
 import { ARTICLE_CATEGORY_LABELS } from "@features/articles/constants";
 import { useArticlesByRelatedChapter } from "@features/articles/queries";
-import { DEFAULT_BIBLE_VERSION } from "../constants";
+import {
+  DEFAULT_BIBLE_VERSION,
+  DEFAULT_BOOK_NUMBER,
+  DEFAULT_CHAPTER_NUMBER,
+} from "../constants";
 import { useAudioBible, useBibleNavigation, useDeepLink } from "../hooks";
 import {
   useBible,
@@ -21,6 +26,7 @@ import {
   useChapterContent,
   useCommentaryHasContent,
   useCommentaryVersions,
+  useReadingProgress,
   useVersionHasVerses,
 } from "../queries";
 import {
@@ -37,10 +43,12 @@ import {
   nextChapter,
   prevChapter,
   readerFontStack,
+  toNepaliDigits,
 } from "../utils";
 import {
   bibleLinkPosition,
   bibleLinkVersionId,
+  buildBibleUrl,
   type BibleLinkPosition,
 } from "../utils/deep-link";
 import { ChapterViewer } from "./chapter-viewer";
@@ -117,6 +125,44 @@ export function BibleHome({ panels }: BibleHomeProps) {
     if (!books) return base;
     return { ...clampChapter(base, books), verse: base.verse };
   }, [currentLink, books, bookNumber, chapter, verse]);
+
+  // Restore the last reading position on a fresh open (full page load at the
+  // default /bible location — /bible root or the Genesis 1 default). The saved
+  // position from `progress-service` (localStorage `bible.reading-position`)
+  // replaces the Genesis 1 default so closing and reopening the site resumes
+  // where the user left off. A real (non-default) book/chapter in the URL
+  // still wins; the one-shot ref keeps this from overriding intentional
+  // in-session navigation. Mirrors Flutter restoring
+  // `Setting.bookPosition`/`chapterPosition` on app open.
+  const router = useRouter();
+  const setVersion = useReadingStore((state) => state.setVersion);
+  const setChapter = useReadingStore((state) => state.setChapter);
+  const restoredRef = useRef(false);
+  const { data: savedPosition } = useReadingProgress();
+  useEffect(() => {
+    if (restoredRef.current || !savedPosition) return;
+    const pos = bibleLinkPosition(currentLink);
+    const isDefaultPosition =
+      pos === null ||
+      (pos.bookNumber === DEFAULT_BOOK_NUMBER &&
+        pos.chapter === DEFAULT_CHAPTER_NUMBER &&
+        pos.verse === undefined);
+    if (!isDefaultPosition) return;
+    restoredRef.current = true;
+    const { bookNumber, chapter, verse, versionId } = savedPosition;
+    setVersion(versionId);
+    setChapter(bookNumber, chapter, verse);
+    // Replace the URL (no history entry) so the restored position becomes the
+    // deep-linkable source of truth — `useDeepLink` then mirrors it into the
+    // store/reader exactly like any other explicit chapter URL.
+    router.replace(
+      buildBibleUrl(
+        verse
+          ? { kind: "verse", bookNumber, chapter, verse, versionId }
+          : { kind: "chapter", bookNumber, chapter, versionId },
+      ),
+    );
+  }, [currentLink, savedPosition, setChapter, setVersion, router]);
 
   // Verse Interaction: changing chapter / book / Bible version clears the
   // current selection (mirrors Flutter's auto-clear in VerseSelectionNotifier).
@@ -234,8 +280,6 @@ export function BibleHome({ panels }: BibleHomeProps) {
         version={version ?? DEFAULT_BIBLE_VERSION}
         books={books}
         parseOptions={parseOptions}
-        onOpenBook={() => openSelection("book")}
-        onOpenChapter={() => openSelection("chapter")}
         // Reference links open the referenced passage in the reader (port of
         // the Flutter `ReferenceVersesSheet` / `CmtParser.openReference`
         // navigation). All three go through the single `goTo` entry point.
@@ -299,6 +343,10 @@ export function BibleHome({ panels }: BibleHomeProps) {
             commentaryId={settings.commentaryId}
             commentaries={commentaries ?? []}
             onCommentaryChange={settings.setCommentaryId}
+            bookName={book?.longName}
+            chapterLabel={toNepaliDigits(position.chapter)}
+            onOpenBook={() => openSelection("book")}
+            onOpenChapter={() => openSelection("chapter")}
             onFontSizeChange={settings.setFontSize}
             onLineHeightChange={settings.setLineHeight}
             onParagraphSpacingChange={settings.setParagraphSpacing}

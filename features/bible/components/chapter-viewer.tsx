@@ -75,8 +75,6 @@ export interface ChapterViewerProps {
   registry?: RendererRegistry<React.ReactNode>;
   /** Verse id being read aloud (audio sync) — drives the active ring. */
   activeVerseId?: string;
-  onOpenBook?: () => void;
-  onOpenChapter?: () => void;
   /** Opens the commentary anchored at this verse's marker. */
   onOpenCommentary?: (entry: CommentaryEntry) => void;
   /** Opens the reference sheet for a cross-reference chip. */
@@ -99,8 +97,6 @@ export function ChapterViewer({
   parsed,
   registry,
   activeVerseId,
-  onOpenBook,
-  onOpenChapter,
   onOpenCommentary,
   onOpenCrossReference,
   onOpenReference,
@@ -186,12 +182,7 @@ export function ChapterViewer({
 
   const body = (
     <ChapterContainer dataVersionId={version.id} className={className}>
-      <ChapterHeader
-        bookName={bookName}
-        chapterNumber={content.chapter}
-        onOpenBook={onOpenBook}
-        onOpenChapter={onOpenChapter}
-      />
+      <ChapterHeader bookName={bookName} chapterNumber={content.chapter} />
 
       {chapter.verses.map((item) => (
         <ChapterVerse

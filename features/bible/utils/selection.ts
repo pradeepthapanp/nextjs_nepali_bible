@@ -46,9 +46,18 @@ export function formatSelectionReference(selection: VerseSelection): string {
   return `${book} ${toNepaliDigits(first.chapter)}:${toNepaliDigits(range)}`;
 }
 
-/** Strips HTML markup and `[bracket]` content from verse text (for copy/share). */
+/**
+ * Strips HTML markup and `[bracket]` content from verse text (for copy/share).
+ * Footnote blocks (`<f>…</f>` / `<fn>…</fn>`) are dropped ENTIRELY — content
+ * included — so the copied/shared text matches the on-screen renderer, which
+ * ignores footnotes.
+ */
 export function stripMarkup(text: string): string {
   return text
+    .replace(/<f\b[^>]*>[\s\S]*?<\/f>/gi, "")
+    .replace(/<fn\b[^>]*>[\s\S]*?<\/fn>/gi, "")
+    .replace(/<f\s*\/>/gi, "")
+    .replace(/<fn\s*\/>/gi, "")
     .replace(/<[^>]*>/g, "")
     .replace(/\[.*?\]/g, "")
     .replace(/\s+/g, " ")
@@ -63,8 +72,9 @@ export function buildSelectionCopyText(selection: VerseSelection): string {
   if (sorted.length === 1) {
     return `${stripMarkup(sorted[0].text)} - ${reference}`;
   }
+  // Numbered lines use Nepali digits (matching the reader's verse numbers).
   const body = sorted
-    .map((verse) => `${verse.verse}. ${stripMarkup(verse.text)}`)
+    .map((verse) => `${toNepaliDigits(verse.verse)}. ${stripMarkup(verse.text)}`)
     .join("\n");
   return `${body}\n\n- ${reference}`;
 }

@@ -27,6 +27,7 @@ import {
   type ReaderTheme,
 } from "../../constants";
 import type { BibleVersion, Commentary } from "../../types";
+import { BookChapterSelectorButton } from "./book-chapter-selector-button";
 
 const ALIGN_KEYS = {
   left: "alignLeft",
@@ -62,6 +63,12 @@ export interface ReaderToolbarProps {
   /** Current commentary book id + available commentary books. */
   commentaryId: string;
   commentaries: Commentary[];
+  /** Current book name for the sticky book/chapter selector (hidden when absent). */
+  bookName?: string;
+  /** Pre-formatted chapter label (Nepali digits) for the sticky selector. */
+  chapterLabel?: string;
+  onOpenBook?: () => void;
+  onOpenChapter?: () => void;
   onVersionChange?: (versionId: string) => void;
   onCommentaryChange?: (commentaryId: string) => void;
   onFontSizeChange?: (value: number) => void;
@@ -123,6 +130,10 @@ export function ReaderToolbar({
   commentaryId,
   commentaries,
   onCommentaryChange,
+  bookName,
+  chapterLabel,
+  onOpenBook,
+  onOpenChapter,
   className,
 }: ReaderToolbarProps) {
   const [displayOpen, setDisplayOpen] = useState(false);
@@ -137,6 +148,21 @@ export function ReaderToolbar({
         className,
       )}
     >
+      {/* Sticky book/chapter selector — always visible, before the font size
+          control, for quick navigation (the chapter header's selector scrolls
+          away with the content). */}
+      {bookName && chapterLabel ? (
+        <>
+          <BookChapterSelectorButton
+            bookName={bookName}
+            chapterLabel={chapterLabel}
+            onOpenBook={onOpenBook}
+            onOpenChapter={onOpenChapter}
+          />
+          <span className="h-6 w-px bg-border" aria-hidden />
+        </>
+      ) : null}
+
       {/* Font size stepper */}
       <div role="group" aria-label={t("fontSize")} className="flex items-center gap-1">
         <ALargeSmall className="size-4 text-muted-foreground" aria-hidden />

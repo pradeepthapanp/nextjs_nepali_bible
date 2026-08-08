@@ -1,4 +1,13 @@
-import type { Song } from "../types";
+/**
+ * The minimal shape `orderSongs` needs: category + numeric `song_number`.
+ * The full `Song` satisfies it, and so does the lightweight ordering index
+ * (`{ id, category, songNumber }`) the song service uses to sort before
+ * fetching page rows — one ordering implementation for both.
+ */
+export interface SongOrderable {
+  category?: string | undefined;
+  songNumber?: string | undefined;
+}
 
 /**
  * Song ordering — THE single source of truth for how songs are ordered.
@@ -38,7 +47,7 @@ export function compareSongNumbers(
  * Returns a NEW array (never mutates the input). This is the ONLY song
  * ordering used anywhere — components must not re-sort.
  */
-export function orderSongs(songs: Song[]): Song[] {
+export function orderSongs<S extends SongOrderable>(songs: S[]): S[] {
   return [...songs].sort((a, b) => {
     const byCategory = (a.category ?? "").localeCompare(b.category ?? "");
     if (byCategory !== 0) return byCategory;
