@@ -8,7 +8,7 @@
  */
 
 export const siteConfig = {
-  name: "नेपाली बाइबल",
+  name: "Nepali Bible",
   shortName: "Nepali Bible",
   description:
     "नेपाली भाषामा बाइबल पढ्नुहोस्, सुन्नुहोस् र अध्ययन गर्नुहोस्। Read, listen and study the Bible in Nepali.",

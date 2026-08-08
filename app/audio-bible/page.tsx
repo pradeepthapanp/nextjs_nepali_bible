@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AudioBiblePage } from "@/features/bible/components/audio-bible-page";
+import { pageDescriptions, seo } from "@/lib/seo";
+
+export const metadata: Metadata = seo({
+  title: "Audio Bible",
+  description: pageDescriptions.bible,
+  path: "/audio-bible",
+});
 
 /**
  * Audio Bible route (`/audio-bible`) — choose a Bible version / book /

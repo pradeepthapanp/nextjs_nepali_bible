@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SettingsRouteDispatcher } from "@/features/settings/components/settings-route-dispatcher";
+import { seo } from "@/lib/seo";
+
+export const metadata: Metadata = seo({
+  title: "Settings",
+  path: "/settings",
+  noindex: true,
+});
 
 /**
  * /settings — the Settings Center route (WEB-FIRST).

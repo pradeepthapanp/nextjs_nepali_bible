@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthRouteDispatcher } from "@/features/auth/components/auth-route-dispatcher";
+import { seo } from "@/lib/seo";
+
+export const metadata: Metadata = seo({
+  title: "Reset Password",
+  path: "/reset-password",
+  noindex: true,
+});
 
 /**
  * /reset-password route — a thin server shell. `AuthRouteDispatcher` reads

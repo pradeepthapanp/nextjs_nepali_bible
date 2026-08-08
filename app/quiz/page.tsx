@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { QuizHomePage } from "@/features/quiz/components/quiz-home-page";
+import { pageDescriptions, seo } from "@/lib/seo";
+
+export const metadata: Metadata = seo({
+  title: "Bible Quiz",
+  description: pageDescriptions.quiz,
+  path: "/quiz",
+});
 
 /**
  * Quiz route — the "Bible Quiz" setup page (PUBLIC).
