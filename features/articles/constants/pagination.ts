@@ -9,3 +9,5 @@ export const ARTICLE_SEARCH_LIMIT = 20; // `searchArticles` limit (repo method, 
 export const ARTICLE_SEARCH_DEBOUNCE_MS = 400;
 /** Web-first: how many related articles `useRelatedArticles` shows (Flutter has none). */
 export const RELATED_ARTICLES_LIMIT = 4;
+/** Web-first: how many articles `useArticlesByRelatedChapter` shows on a Bible chapter. */
+export const RELATED_CHAPTER_ARTICLES_LIMIT = 4;

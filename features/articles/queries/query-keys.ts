@@ -19,6 +19,9 @@ export const articlesKeys = {
   detail: (id: string) => ["articles", "detail", id] as const,
   byCategory: (category: ArticleCategory) =>
     ["articles", "category", category] as const,
+  /** Published articles tied to a Bible chapter (web-first internal linking). */
+  byRelatedChapter: (bookNumber: number, chapter: number) =>
+    ["articles", "relatedChapter", bookNumber, chapter] as const,
   search: (query: string) => ["articles", "search", query] as const,
   comments: (articleId: string) => ["articles", "comments", articleId] as const,
   profile: (userId: string) => ["articles", "profile", userId] as const,

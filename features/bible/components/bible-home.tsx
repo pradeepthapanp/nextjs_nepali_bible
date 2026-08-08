@@ -6,6 +6,12 @@ import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import {
+  RelatedLinks,
+  type RelatedLinkItem,
+} from "@/components/related/related-links";
+import { ARTICLE_CATEGORY_LABELS } from "@features/articles/constants";
+import { useArticlesByRelatedChapter } from "@features/articles/queries";
 import { DEFAULT_BIBLE_VERSION } from "../constants";
 import { useAudioBible, useBibleNavigation, useDeepLink } from "../hooks";
 import {
@@ -25,7 +31,13 @@ import {
 } from "../store";
 import { VerseInteractionHost } from "./interaction";
 import { BibleSelectionDialog } from "./selection";
-import { clampChapter, nextChapter, prevChapter, readerFontStack } from "../utils";
+import {
+  canonicalNumber,
+  clampChapter,
+  nextChapter,
+  prevChapter,
+  readerFontStack,
+} from "../utils";
 import {
   bibleLinkPosition,
   bibleLinkVersionId,
@@ -123,6 +135,25 @@ export function BibleHome({ panels }: BibleHomeProps) {
       commentaryId: settings.commentaryId,
       enabled: Boolean(versionId && position.bookNumber && position.chapter),
     },
+  );
+
+  // Related articles — published articles tagged with the CURRENT chapter via
+  // the existing `related_book_number`/`related_chapter` columns (the reverse
+  // of an article's "Related Bible chapter"). Articles store the CANONICAL
+  // book number (1..66), so the app's book number is converted first. Queried
+  // only while a chapter is rendered; the section hides itself when empty.
+  const { data: relatedArticles } = useArticlesByRelatedChapter(
+    chapterQuery.data && books
+      ? canonicalNumber(books, position.bookNumber)
+      : undefined,
+    chapterQuery.data ? position.chapter : undefined,
+  );
+  const relatedArticleLinks: RelatedLinkItem[] = (relatedArticles ?? []).map(
+    (article) => ({
+      href: `/articles/${article.id}`,
+      label: article.title,
+      description: ARTICLE_CATEGORY_LABELS[article.category],
+    }),
   );
 
   const { goTo, goToVersion } = useBibleNavigation();
@@ -307,10 +338,14 @@ export function BibleHome({ panels }: BibleHomeProps) {
               textAlign: settings.alignment,
               fontFamily: readerFontStack(settings.fontFamily),
               "--reader-paragraph-spacing": `${settings.paragraphSpacing}px`,
+              // Exposes the verse font size so derived text (e.g. commentary)
+              // can track it (commentary = verse size − 2px).
+              "--reader-font-size": `${settings.fontSize}px`,
             } as React.CSSProperties
           }
         >
           {body}
+          <RelatedLinks title={t("relatedArticles")} links={relatedArticleLinks} />
         </main>
         {panels ? (
           <aside className="hidden lg:block" aria-label="Reader panels">

@@ -361,7 +361,10 @@ function VerseCommentaryList({
           <div
             key={index}
             data-segment="commentary"
-            className={cn("flex items-start gap-2 text-sm text-muted-foreground", !hasMarker && "flex-col")}
+            className={cn(
+              "flex items-start gap-2 text-muted-foreground",
+              !hasMarker && "flex-col",
+            )}
           >
             {hasMarker ? (
               <VerseCommentaryMarker
@@ -371,7 +374,14 @@ function VerseCommentaryList({
                 }
               />
             ) : null}
-            <div className="min-w-0 flex-1 space-y-1">{blocks}</div>
+            {/* Commentary text tracks the verse font size (2px smaller) via
+                the `--reader-font-size` var set by the reader on <main>. */}
+            <div
+              className="min-w-0 flex-1 space-y-1"
+              style={{ fontSize: "calc(var(--reader-font-size, 17px) - 2px)" }}
+            >
+              {blocks}
+            </div>
           </div>
         );
       })}

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { unwrap } from "@/services/helpers";
 import { SONG_PAGE_SIZE } from "../constants";
 import type { Song, SongCategoryName } from "../types";
+import { orderSongs } from "../utils/song-ordering";
 
 /**
  * Song service — a direct port of the SupabaseRepository song methods
@@ -12,14 +13,22 @@ import type { Song, SongCategoryName } from "../types";
  * and is the implementation of the `SongService` contract. Server-state
  * queries reuse it via the `MusicServices` aggregate (see `index.ts`).
  *
+ * ORDERING — single source of truth: `songs.song_number` is TEXT, so SQL
+ * orders it lexicographically (`1, 10, 100, 2, …`). Every list method here
+ * fetches its matching rows, maps them, applies the SHARED `orderSongs`
+ * (category asc, then NUMERIC `song_number`) and then paginates in memory —
+ * so `99` sorts before `100` and every consumer (category lists, artist
+ * lists, search results, Song Reader source lists) sees the SAME order.
+ * Playlists are NOT reordered here: they keep their user-defined `position`
+ * order (`fetchPlaylistSongs` in `playlist-song-service.ts`).
+ *
  * Row mapping notes (mirroring Flutter):
- * - `getSongs` orders by `category` then `song_number`.
- * - `getSongsByCategory` filters `eq("category", …)` then orders by
- *   `song_number`.
- * - `getSongsByArtist` filters `eq("artist_id", …)` and orders by `name`.
+ * - `getSongs` / `getSongsByCategory` / `getSongsByArtist` / `searchSongs`
+ *   all end with the shared numeric `orderSongs`.
  * - `searchSongs` matches `name | artist | nepali_lyrics | roman_lyrics |
  *   translit_lyrics | song_number` with `ilike:%q%` (see
- *   `constants/search.ts`) and orders by `category`, `song_number`.
+ *   `constants/search.ts`) and preserves its category grouping before the
+ *   numeric order.
  * - `getSongById` is a WEB-FIRST method (no Flutter counterpart): web deep
  *   links carry only a `songId`, so the Song Reader resolves a single song
  *   instead of receiving the whole list through a route `extra`.
@@ -35,7 +44,7 @@ export interface SongService {
     pageSize?: number,
   ): Promise<Song[]>;
 
-  /** All songs by an artist, ordered by name (replaces `getSongsByArtist`). */
+  /** All songs by an artist, in the shared numeric order (replaces `getSongsByArtist`). */
   getSongsByArtist(artistId: string): Promise<Song[]>;
 
   /** A single song by id — WEB-FIRST (deep-link resolution). */
@@ -123,15 +132,47 @@ function rangeFor(page: number, pageSize: number): [number, number] {
 export class SupabaseSongService implements SongService {
   constructor(private readonly client: SupabaseClient) {}
 
+  /**
+   * Fetches EVERY row matching the caller's query by paging in PostgREST's
+   * max-rows chunks (an unbounded `.select()` caps at 1000 rows, which would
+   * silently truncate the library). Used by every list method so the shared
+   * numeric ordering is computed over the FULL matching set — not a window.
+   */
+  private async fetchAllRows(
+    fetchPage: (
+      from: number,
+      to: number,
+    ) => PromiseLike<{ data: SongRow[] | null; error: unknown }>,
+  ): Promise<SongRow[]> {
+    const CHUNK = 1000;
+    const all: SongRow[] = [];
+    for (let offset = 0; ; offset += CHUNK) {
+      const response = await fetchPage(offset, offset + CHUNK - 1);
+      const rows = (unwrap(response) ?? []) as SongRow[];
+      all.push(...rows);
+      if (rows.length < CHUNK) break;
+    }
+    return all;
+  }
+
+  /**
+   * Fetches the matching rows, maps them, applies the SINGLE shared numeric
+   * ordering (`orderSongs`) and paginates in memory. The SQL query is only a
+   * coarse pre-sort — `orderSongs` is authoritative so the numeric
+   * `song_number` order is correct across pages.
+   */
   async getSongs(page: number, pageSize = SONG_PAGE_SIZE): Promise<Song[]> {
     const [from, to] = rangeFor(page, pageSize);
-    const response = await this.client
-      .from("songs")
-      .select()
-      .order("category")
-      .order("song_number")
-      .range(from, to);
-    return unwrap(response).map(mapSong);
+    const rows = await this.fetchAllRows((offset, end) =>
+      this.client
+        .from("songs")
+        .select()
+        .order("category")
+        .order("song_number")
+        .range(offset, end),
+    );
+    const songs = orderSongs(rows.map(mapSong));
+    return songs.slice(from, to + 1);
   }
 
   async getSongsByCategory(
@@ -140,22 +181,28 @@ export class SupabaseSongService implements SongService {
     pageSize = SONG_PAGE_SIZE,
   ): Promise<Song[]> {
     const [from, to] = rangeFor(page, pageSize);
-    const response = await this.client
-      .from("songs")
-      .select()
-      .eq("category", category)
-      .order("song_number")
-      .range(from, to);
-    return unwrap(response).map(mapSong);
+    const rows = await this.fetchAllRows((offset, end) =>
+      this.client
+        .from("songs")
+        .select()
+        .eq("category", category)
+        .order("song_number")
+        .range(offset, end),
+    );
+    const songs = orderSongs(rows.map(mapSong));
+    return songs.slice(from, to + 1);
   }
 
   async getSongsByArtist(artistId: string): Promise<Song[]> {
-    const response = await this.client
-      .from("songs")
-      .select()
-      .eq("artist_id", artistId)
-      .order("name", { ascending: true });
-    return unwrap(response).map(mapSong);
+    const rows = await this.fetchAllRows((offset, end) =>
+      this.client
+        .from("songs")
+        .select()
+        .eq("artist_id", artistId)
+        .order("song_number")
+        .range(offset, end),
+    );
+    return orderSongs(rows.map(mapSong));
   }
 
   async getSongById(id: string): Promise<Song | null> {
@@ -176,16 +223,21 @@ export class SupabaseSongService implements SongService {
     const q = query.trim();
     if (!q) return [];
     const [from, to] = rangeFor(page, pageSize);
-    const response = await this.client
-      .from("songs")
-      .select()
-      .or(
-        `name.ilike.%${q}%,artist.ilike.%${q}%,nepali_lyrics.ilike.%${q}%,roman_lyrics.ilike.%${q}%,translit_lyrics.ilike.%${q}%,song_number.ilike.%${q}%`,
-      )
-      .order("category")
-      .order("song_number")
-      .range(from, to);
-    return unwrap(response).map(mapSong);
+    const rows = await this.fetchAllRows((offset, end) =>
+      this.client
+        .from("songs")
+        .select()
+        .or(
+          `name.ilike.%${q}%,artist.ilike.%${q}%,nepali_lyrics.ilike.%${q}%,roman_lyrics.ilike.%${q}%,translit_lyrics.ilike.%${q}%,song_number.ilike.%${q}%`,
+        )
+        .order("category")
+        .order("song_number")
+        .range(offset, end),
+    );
+    // Matching semantics (relevance) are preserved by the query above; the
+    // shared numeric order is applied to the matched set before pagination.
+    const songs = orderSongs(rows.map(mapSong));
+    return songs.slice(from, to + 1);
   }
 
   async updateSong(song: Song): Promise<void> {

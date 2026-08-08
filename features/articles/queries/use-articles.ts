@@ -6,6 +6,7 @@ import {
   ARTICLE_PAGE_SIZE,
   ARTICLE_SEARCH_LIMIT,
   RELATED_ARTICLES_LIMIT,
+  RELATED_CHAPTER_ARTICLES_LIMIT,
 } from "../constants";
 import { getArticleServices } from "../services";
 import type { Article, ArticleCategory } from "../types";
@@ -98,6 +99,28 @@ export function useArticlesByCategory(category: ArticleCategory) {
         limit: ARTICLE_CATEGORY_PAGE_SIZE,
         offset: 0,
       }),
+  });
+}
+
+/**
+ * Published articles tied to a Bible chapter — the web-first internal-linking
+ * query that powers the Bible reader's "Related articles" section. Reuses the
+ * existing `related_book_number`/`related_chapter` article columns. Disabled
+ * until a book+chapter is known.
+ */
+export function useArticlesByRelatedChapter(
+  bookNumber?: number,
+  chapter?: number,
+) {
+  return useQuery({
+    queryKey: articlesKeys.byRelatedChapter(bookNumber ?? 0, chapter ?? 0),
+    queryFn: () =>
+      getArticleServices().article.getArticlesByRelatedChapter(
+        bookNumber as number,
+        chapter as number,
+        { limit: RELATED_CHAPTER_ARTICLES_LIMIT },
+      ),
+    enabled: Boolean(bookNumber && chapter),
   });
 }
 

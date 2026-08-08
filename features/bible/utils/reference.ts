@@ -33,6 +33,30 @@ export function isSameReference(a: Reference, b: Reference): boolean {
 }
 
 /**
+ * The `bible_books_complete` table numbers books with its OWN scheme (e.g.
+ * Genesis=10, Exodus=20, Luke=490) — NOT the canonical 1..66 order. The
+ * `getBooks` query orders by `sorting_order`, which IS the canonical order, so
+ * `books[canonicalNumber - 1]` is the canonical book. Cross-content metadata
+ * that stores a 1..66 canonical number (e.g. articles' `related_book_number`)
+ * must be resolved through this helper.
+ */
+export function canonicalBook(
+  books: Book[],
+  canonicalNumber: number,
+): Book | undefined {
+  return books[canonicalNumber - 1];
+}
+
+/** Inverse of `canonicalBook`: app bookNumber → canonical position (1..66). */
+export function canonicalNumber(
+  books: Book[],
+  appBookNumber: number,
+): number | undefined {
+  const index = books.findIndex((b) => b.bookNumber === appBookNumber);
+  return index === -1 ? undefined : index + 1;
+}
+
+/**
  * Parses a canonical reference string ("उत्पत्ति 1:2" / "1:2" / "1").
  * Book matching is attempted by name first, then by number.
  * Returns null when the string cannot be parsed.

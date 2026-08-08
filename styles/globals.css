@@ -23,6 +23,17 @@
     color: var(--foreground);
   }
 
+  /*
+   * Native `<select>` dropdowns: give options theme-consistent colors so the
+   * popup's unselected options stay readable in dark mode (the browser's
+   * default popup can otherwise render a light background under the light
+   * `text-foreground`, making them invisible).
+   */
+  select option {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
   /* Consistent, visible keyboard focus for the whole app. */
   :focus-visible {
     outline: 2px solid var(--ring);

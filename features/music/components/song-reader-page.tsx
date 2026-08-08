@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import { RelatedLinks, type RelatedLinkItem } from "@/components/related/related-links";
 import {
   useFavoriteSongs,
   useLyrics,
@@ -16,7 +17,10 @@ import {
 import { useArtist, useSong } from "../queries";
 import { usePlaylistSelectionStore } from "../store";
 import type { Song } from "../types";
+import { buildMusicUrl } from "../utils/deep-link";
+import { categoryLabel } from "../utils/category";
 import { readerTitle } from "../utils";
+import { ChordDialog } from "../chords";
 import { AddToPlaylistFlow } from "./playlist/add-to-playlist-flow";
 import { FavoriteButton } from "./song/favorite-button";
 import { ReaderFooter } from "./reader/reader-footer";
@@ -56,6 +60,11 @@ export function SongReaderPage() {
     (state) => state.openSheet,
   );
 
+  // Tappable chords — tapping any rendered chord opens the chord dialog with
+  // that (already-transposed) chord. State lives here so the dialog closes on
+  // navigation and the chord is restored across re-renders.
+  const [chordDialog, setChordDialog] = useState<{ chord: string } | null>(null);
+
   // Loading/error for a DIRECT deep-link landing (`/music/song/{id}` with no
   // reader source). When the reader was opened from a list, the source query
   // already resolves the song, so this query stays disabled (no extra fetch).
@@ -68,9 +77,33 @@ export function SongReaderPage() {
   const isFavorite = song ? favorites.isFavorite(song.id) : false;
   const title = song ? readerTitle(song, artist?.name) : "Song";
 
+  // Related content — driven by the song's EXISTING metadata (artistId /
+  // category). Both are real internal routes; nothing is invented.
+  const relatedLinks: RelatedLinkItem[] = [];
+  if (song?.artistId) {
+    relatedLinks.push({
+      href: buildMusicUrl({ kind: "artist", artistId: song.artistId }),
+      label: artist?.name ?? song.artist ?? "Artist",
+      description: "Artist",
+    });
+  }
+  if (song?.category) {
+    relatedLinks.push({
+      href: buildMusicUrl({ kind: "category", category: song.category }),
+      label: categoryLabel(song.category),
+      description: "Category",
+    });
+  }
+
   let body: React.ReactNode;
   if (song && tree) {
-    body = <SongReader tree={tree} showChords={showChords} />;
+    body = (
+      <SongReader
+        tree={tree}
+        showChords={showChords}
+        onChordTap={(chord) => setChordDialog({ chord })}
+      />
+    );
   } else if (songQuery.isError) {
     body = (
       <ErrorState
@@ -136,11 +169,20 @@ export function SongReaderPage() {
           onNext={navigation.next}
           className="mt-6"
         />
+        <RelatedLinks title="Related" links={relatedLinks} />
       </div>
 
       <AddToPlaylistFlow
         song={addToPlaylistSong}
         onClose={() => setAddToPlaylistSong(null)}
+      />
+
+      <ChordDialog
+        open={Boolean(chordDialog)}
+        onOpenChange={(open) => {
+          if (!open) setChordDialog(null);
+        }}
+        chord={chordDialog?.chord ?? null}
       />
     </div>
   );

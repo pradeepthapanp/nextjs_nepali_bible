@@ -411,7 +411,11 @@ function SelectControl<T extends string>({
         value={value}
         onChange={(event) => onChange?.(event.target.value as T)}
         disabled={!onChange}
-        className="h-8 w-full appearance-none truncate rounded-lg border border-input bg-transparent pl-2 pr-7 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+        // Explicit `color-scheme` + option colors keep the native dropdown
+        // (and its unselected options) readable in dark mode — the browser's
+        // default popup can otherwise render a light background under the
+        // light `text-foreground`, making the options invisible.
+        className="h-8 w-full appearance-none truncate rounded-lg border border-input bg-transparent pl-2 pr-7 text-xs font-medium text-foreground [color-scheme:light] dark:[color-scheme:dark] [&>option]:bg-background [&>option]:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

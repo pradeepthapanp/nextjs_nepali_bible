@@ -38,7 +38,7 @@ export function SongReader({
   return (
     <LyricsRenderProvider registry={registry}>
       <div className={cn("space-y-4", className)}>
-        <SongHeader tree={tree} />
+        <SongHeader tree={tree} onChordTap={onChordTap} />
         <LyricsView tree={tree} />
       </div>
     </LyricsRenderProvider>

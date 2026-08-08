@@ -44,6 +44,17 @@ export interface ArticleService {
     category: ArticleCategory,
     options?: { limit?: number; offset?: number },
   ): Promise<Article[]>;
+  /**
+   * Published articles tied to a Bible chapter — reuses the EXISTING
+   * `related_book_number`/`related_chapter` columns (web-first internal
+   * linking: the Bible reader surfaces "related articles" for the open
+   * chapter). No schema change.
+   */
+  getArticlesByRelatedChapter(
+    bookNumber: number,
+    chapter: number,
+    options?: { limit?: number },
+  ): Promise<Article[]>;
   /** Title search (replaces `searchArticles`; no Flutter UI uses it). */
   searchArticles(
     query: string,
@@ -186,6 +197,23 @@ export class SupabaseArticleService implements ArticleService {
       .eq("category", category)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
+    const rows = unwrap(response) as ArticleRow[] | null;
+    return (rows ?? []).map(mapArticle);
+  }
+
+  async getArticlesByRelatedChapter(
+    bookNumber: number,
+    chapter: number,
+    options?: { limit?: number },
+  ): Promise<Article[]> {
+    const response = await this.client
+      .from("articles")
+      .select()
+      .eq("related_book_number", bookNumber)
+      .eq("related_chapter", chapter)
+      .eq("published", true)
+      .order("created_at", { ascending: false })
+      .limit(options?.limit ?? 4);
     const rows = unwrap(response) as ArticleRow[] | null;
     return (rows ?? []).map(mapArticle);
   }

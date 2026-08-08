@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -12,6 +12,13 @@ import { toast } from "sonner";
 import { useSupabase } from "@/providers/supabase-provider";
 import { Button } from "@/components/ui/button";
 import { copyTextToClipboard } from "@/utils/clipboard";
+import { useBooks } from "@features/bible/queries";
+import {
+  buildBibleUrl,
+  canonicalBook,
+  referenceToString,
+} from "@features/bible/utils";
+import { RelatedLinks } from "@/components/related/related-links";
 import { useArticleComments } from "../queries";
 import {
   useArticleDetail,
@@ -59,9 +66,32 @@ export function ArticleDetailPage({ articleId }: ArticleDetailPageProps) {
   const composer = useCommentComposer(articleId);
   const { session } = useSupabase();
   const { openArticle } = useArticleNavigation();
+  // Canonical book names — resolves the related-chapter label (reuses the
+  // existing Bible books query; no new fetch).
+  const { data: books } = useBooks();
 
   const [showSettings, setShowSettings] = useState(false);
   const currentUserId = session?.user?.id;
+
+  // Related Bible chapter — driven by the article's EXISTING
+  // `relatedBookNumber`/`relatedChapter` metadata (rendered only when both are
+  // present; no invented relationships). The article stores the CANONICAL book
+  // number (1..66), which is resolved to the app's book via the ordered list
+  // before building the URL with the shared helper.
+  const relatedBibleChapter = useMemo(() => {
+    if (!article?.relatedBookNumber || !article.relatedChapter) return null;
+    const book = canonicalBook(books ?? [], article.relatedBookNumber);
+    if (!book) return null; // unresolvable — never link to a wrong book
+    const reference = {
+      bookNumber: book.bookNumber,
+      chapter: article.relatedChapter,
+    };
+    return {
+      href: buildBibleUrl({ kind: "chapter", ...reference }),
+      label: referenceToString(reference, books ?? []),
+      description: "Related Bible chapter",
+    };
+  }, [article, books]);
 
   // One-shot view-count bump per article (Flutter bumps on pop; the web bumps
   // once when the article is read). Mutation in an effect — not setState.
@@ -185,6 +215,12 @@ export function ArticleDetailPage({ articleId }: ArticleDetailPageProps) {
           <div className="px-4 pt-5">
             <ArticleContent content={article.content} />
           </div>
+
+          <RelatedLinks
+            title="Related Bible chapter"
+            links={relatedBibleChapter ? [relatedBibleChapter] : []}
+            className="px-4"
+          />
 
           <section aria-label="Comments" className="mt-8 px-4">
             <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
