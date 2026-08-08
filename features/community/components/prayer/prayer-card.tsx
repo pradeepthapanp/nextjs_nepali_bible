@@ -15,6 +15,9 @@ export interface PrayerCardProps {
   canManage: boolean;
   /** Admin/editor (publish). */
   canModerate: boolean;
+  /** Actual reply count override (from the `prayer_replies` rows); falls back
+   * to `prayer.replyCount` (the `reply_count` column, which can drift stale). */
+  replyCount?: number;
   onOpen: () => void;
   onPublish: () => void;
   onEdit: () => void;
@@ -33,6 +36,7 @@ export function PrayerCard({
   prayer,
   canManage,
   canModerate,
+  replyCount,
   onOpen,
   onPublish,
   onEdit,
@@ -85,7 +89,7 @@ export function PrayerCard({
             <PrayerCountBadge count={prayer.prayerCount} />
             <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               <MessageCircle className="size-4" aria-hidden />
-              {prayer.replyCount}
+              {replyCount ?? prayer.replyCount}
             </span>
           </div>
         </div>

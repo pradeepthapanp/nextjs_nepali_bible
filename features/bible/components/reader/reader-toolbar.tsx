@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ALargeSmall,
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
-  AlignVerticalSpaceAround,
   ChevronDown,
   Hash,
   MessageSquare,
   Minus,
-  Pilcrow,
   Plus,
   SlidersHorizontal,
 } from "lucide-react";
@@ -163,99 +161,19 @@ export function ReaderToolbar({
         </>
       ) : null}
 
-      {/* Font size stepper */}
-      <div role="group" aria-label={t("fontSize")} className="flex items-center gap-1">
-        <ALargeSmall className="size-4 text-muted-foreground" aria-hidden />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onFontSizeChange?.(fontSize - 1)}
-          disabled={!onFontSizeChange}
-          aria-label={t("decreaseFontSize")}
-        >
-          <Minus aria-hidden />
-        </Button>
-        <span className="w-6 text-center text-xs tabular-nums" aria-live="polite">
-          {fontSize}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onFontSizeChange?.(fontSize + 1)}
-          disabled={!onFontSizeChange}
-          aria-label={t("increaseFontSize")}
-        >
-          <Plus aria-hidden />
-        </Button>
-      </div>
-
-      <span className="h-6 w-px bg-border" aria-hidden />
-
-      {/* Line height stepper */}
-      <div role="group" aria-label={t("lineHeight")} className="flex items-center gap-1">
-        <AlignVerticalSpaceAround className="size-4 text-muted-foreground" aria-hidden />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onLineHeightChange?.(Number((lineHeight - 0.1).toFixed(1)))}
-          disabled={!onLineHeightChange}
-          aria-label={t("decreaseLineHeight")}
-        >
-          <Minus aria-hidden />
-        </Button>
-        <span className="w-8 text-center text-xs tabular-nums" aria-live="polite">
-          {lineHeight.toFixed(1)}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onLineHeightChange?.(Number((lineHeight + 0.1).toFixed(1)))}
-          disabled={!onLineHeightChange}
-          aria-label={t("increaseLineHeight")}
-        >
-          <Plus aria-hidden />
-        </Button>
-      </div>
-
-      <span className="h-6 w-px bg-border" aria-hidden />
-
-      {/* Paragraph spacing stepper */}
-      <div
-        role="group"
-        aria-label={t("paragraphSpacing")}
-        className="flex items-center gap-1"
-      >
-        <Pilcrow className="size-4 text-muted-foreground" aria-hidden />
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            onParagraphSpacingChange?.(
-              paragraphSpacing - READER_PARAGRAPH_SPACING_STEP,
-            )
-          }
-          disabled={!onParagraphSpacingChange}
-          aria-label={t("decreaseParagraphSpacing")}
-        >
-          <Minus aria-hidden />
-        </Button>
-        <span className="w-6 text-center text-xs tabular-nums" aria-live="polite">
-          {paragraphSpacing}
-        </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            onParagraphSpacingChange?.(
-              paragraphSpacing + READER_PARAGRAPH_SPACING_STEP,
-            )
-          }
-          disabled={!onParagraphSpacingChange}
-          aria-label={t("increaseParagraphSpacing")}
-        >
-          <Plus aria-hidden />
-        </Button>
-      </div>
+      {/* Text controls popup — collapses font size, line height, paragraph
+          spacing and alignment into one compact dropdown so the toolbar stays
+          a single row. */}
+      <TextControlsPopover
+        fontSize={fontSize}
+        lineHeight={lineHeight}
+        paragraphSpacing={paragraphSpacing}
+        alignment={alignment}
+        onFontSizeChange={onFontSizeChange}
+        onLineHeightChange={onLineHeightChange}
+        onParagraphSpacingChange={onParagraphSpacingChange}
+        onAlignmentChange={onAlignmentChange}
+      />
 
       <span className="h-6 w-px bg-border" aria-hidden />
 
@@ -272,29 +190,6 @@ export function ReaderToolbar({
           onChange={onFontFamilyChange}
           className="w-44"
         />
-      </div>
-
-      <span className="h-6 w-px bg-border" aria-hidden />
-
-      {/* Alignment segmented control */}
-      <div role="group" aria-label={t("textAlignment")} className="flex items-center rounded-lg bg-muted p-0.5">
-        {ALIGNMENTS.map(({ value, icon: Icon }) => (
-          <Button
-            key={value}
-            variant="ghost"
-            size="sm"
-            onClick={() => onAlignmentChange?.(value)}
-            disabled={!onAlignmentChange}
-            aria-pressed={alignment === value}
-            aria-label={t(ALIGN_KEYS[value])}
-            className={cn(
-              "h-8 w-8 p-0",
-              alignment === value && "bg-background shadow-sm",
-            )}
-          >
-            <Icon className="size-4" aria-hidden />
-          </Button>
-        ))}
       </div>
 
       <span className="h-6 w-px bg-border" aria-hidden />
@@ -405,6 +300,220 @@ export function ReaderToolbar({
             label={t("verseNumbers")}
             icon={<Hash className="size-3.5" aria-hidden />}
           />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One labeled row in the Text popover. */
+function SettingRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Compact minus / value / plus stepper used inside the Text popover. */
+function Stepper({
+  display,
+  onDecrease,
+  onIncrease,
+  disabled,
+  decreaseLabel,
+  increaseLabel,
+}: {
+  display: string;
+  onDecrease?: () => void;
+  onIncrease?: () => void;
+  disabled?: boolean;
+  decreaseLabel: string;
+  increaseLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onDecrease}
+        disabled={disabled}
+        aria-label={decreaseLabel}
+        className="h-7 px-1.5"
+      >
+        <Minus aria-hidden />
+      </Button>
+      <span className="w-8 text-center text-xs tabular-nums" aria-live="polite">
+        {display}
+      </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onIncrease}
+        disabled={disabled}
+        aria-label={increaseLabel}
+        className="h-7 px-1.5"
+      >
+        <Plus aria-hidden />
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Compact "Text" dropdown — collapses the font size, line height, paragraph
+ * spacing and alignment controls into one popover so the toolbar stays a
+ * single row. Presentational: receives the current values and reports changes
+ * via callbacks (same contract as the inline controls it replaces).
+ */
+function TextControlsPopover({
+  fontSize,
+  lineHeight,
+  paragraphSpacing,
+  alignment,
+  onFontSizeChange,
+  onLineHeightChange,
+  onParagraphSpacingChange,
+  onAlignmentChange,
+}: {
+  fontSize: number;
+  lineHeight: number;
+  paragraphSpacing: number;
+  alignment: ReaderAlignment;
+  onFontSizeChange?: (value: number) => void;
+  onLineHeightChange?: (value: number) => void;
+  onParagraphSpacingChange?: (value: number) => void;
+  onAlignmentChange?: (alignment: ReaderAlignment) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("reader");
+
+  // Close on outside pointerdown or Escape while the popover is open.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="h-8 gap-1.5 px-2 text-xs"
+      >
+        <ALargeSmall className="size-4" aria-hidden />
+        {t("text")}
+        <ChevronDown
+          className={cn(
+            "size-3.5 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </Button>
+
+      {open ? (
+        <div
+          role="group"
+          aria-label={t("text")}
+          className="absolute right-0 top-full z-50 mt-2 w-64 space-y-3 rounded-xl border bg-card p-3 text-card-foreground shadow-lg"
+        >
+          <SettingRow label={t("fontSize")}>
+            <Stepper
+              display={`${fontSize}`}
+              onDecrease={() => onFontSizeChange?.(fontSize - 1)}
+              onIncrease={() => onFontSizeChange?.(fontSize + 1)}
+              disabled={!onFontSizeChange}
+              decreaseLabel={t("decreaseFontSize")}
+              increaseLabel={t("increaseFontSize")}
+            />
+          </SettingRow>
+
+          <SettingRow label={t("lineHeight")}>
+            <Stepper
+              display={lineHeight.toFixed(1)}
+              onDecrease={() =>
+                onLineHeightChange?.(Number((lineHeight - 0.1).toFixed(1)))
+              }
+              onIncrease={() =>
+                onLineHeightChange?.(Number((lineHeight + 0.1).toFixed(1)))
+              }
+              disabled={!onLineHeightChange}
+              decreaseLabel={t("decreaseLineHeight")}
+              increaseLabel={t("increaseLineHeight")}
+            />
+          </SettingRow>
+
+          <SettingRow label={t("paragraphSpacing")}>
+            <Stepper
+              display={`${paragraphSpacing}`}
+              onDecrease={() =>
+                onParagraphSpacingChange?.(
+                  paragraphSpacing - READER_PARAGRAPH_SPACING_STEP,
+                )
+              }
+              onIncrease={() =>
+                onParagraphSpacingChange?.(
+                  paragraphSpacing + READER_PARAGRAPH_SPACING_STEP,
+                )
+              }
+              disabled={!onParagraphSpacingChange}
+              decreaseLabel={t("decreaseParagraphSpacing")}
+              increaseLabel={t("increaseParagraphSpacing")}
+            />
+          </SettingRow>
+
+          <SettingRow label={t("textAlignment")}>
+            <div
+              role="group"
+              aria-label={t("textAlignment")}
+              className="flex items-center rounded-lg bg-muted p-0.5"
+            >
+              {ALIGNMENTS.map(({ value, icon: Icon }) => (
+                <Button
+                  key={value}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAlignmentChange?.(value)}
+                  disabled={!onAlignmentChange}
+                  aria-pressed={alignment === value}
+                  aria-label={t(ALIGN_KEYS[value])}
+                  className={cn(
+                    "h-7 w-8 p-0",
+                    alignment === value && "bg-background shadow-sm",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                </Button>
+              ))}
+            </div>
+          </SettingRow>
         </div>
       ) : null}
     </div>

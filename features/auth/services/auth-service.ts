@@ -4,8 +4,8 @@ import type { UploadService } from "@/services/upload-service";
 import { fileExtension } from "@/utils/content-type";
 import {
   AUTH_AVATAR_UPLOAD_PATH_PREFIX,
-  AUTH_CALLBACK_PATH,
   AUTH_GOOGLE_PROVIDER,
+  AUTH_GOOGLE_REDIRECT_URL,
   AUTH_RESET_PASSWORD_REDIRECT_PATH,
 } from "../constants";
 import type { SignupStatus } from "../types";
@@ -149,7 +149,10 @@ export class SupabaseAuthService implements AuthService {
     const response = await this.client.auth.signInWithOAuth({
       provider: AUTH_GOOGLE_PROVIDER,
       options: {
-        redirectTo: authRedirectPath(AUTH_CALLBACK_PATH),
+        // Fixed production callback (see AUTH_GOOGLE_REDIRECT_URL) — the
+        // Supabase Google client only allowlists the prod domain, so after a
+        // successful login the user lands on bachannepal.com/auth/callback.
+        redirectTo: AUTH_GOOGLE_REDIRECT_URL,
       },
     });
     if (response.error) throw response.error;

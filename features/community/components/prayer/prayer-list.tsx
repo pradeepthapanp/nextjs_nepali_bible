@@ -26,6 +26,9 @@ export interface PrayerListProps {
   onPublish?: (id: string) => void;
   onEdit?: (prayer: Prayer) => void;
   onDelete?: (prayer: Prayer) => void;
+  /** Actual reply counts per prayer id (from `prayer_replies`); falls back
+   * to `prayer.replyCount` (the `reply_count` column, which can drift). */
+  replyCounts?: Record<string, number>;
   className?: string;
 }
 
@@ -50,6 +53,7 @@ export function PrayerList({
   onPublish,
   onEdit,
   onDelete,
+  replyCounts,
   className,
 }: PrayerListProps) {
   if (isLoading) return <LoadingState label="Loading prayers…" />;
@@ -77,6 +81,7 @@ export function PrayerList({
         <PrayerCard
           key={prayer.id}
           prayer={prayer}
+          replyCount={replyCounts?.[prayer.id] ?? prayer.replyCount}
           canManage={canManagePrayer?.(prayer) ?? false}
           canModerate={canModerate ?? false}
           onOpen={() => onOpen?.(prayer)}

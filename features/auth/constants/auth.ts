@@ -39,6 +39,14 @@ export const AUTH_GOOGLE_PROVIDER = "google";
 /** The Supabase redirect target for OAuth + password-recovery callbacks. */
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
+/**
+ * Where Google OAuth lands after a successful login. The Supabase project's
+ * Google OAuth client allowlists the PRODUCTION callback, so this is a fixed
+ * absolute URL (not the current origin) — a dev/login on any origin is
+ * redirected to the production callback.
+ */
+export const AUTH_GOOGLE_REDIRECT_URL = "https://bachannepal.com/auth/callback";
+
 /** Where signed-in users land after a successful sign-in by default. */
 export const AUTH_DEFAULT_SIGNED_IN_PATH = "/profile";
 

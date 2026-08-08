@@ -6,6 +6,7 @@ import { AuthGate } from "@features/auth";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/ui/page-container";
 import { useCommunityNavigation, usePrayerLibrary } from "../hooks";
+import { usePrayerReplyCounts } from "../queries";
 import type { Prayer } from "../types";
 import { DeletePrayerDialog } from "./dialogs/delete-prayer-dialog";
 import { PrayerList } from "./prayer/prayer-list";
@@ -26,6 +27,9 @@ import { PrayerList } from "./prayer/prayer-list";
  */
 export function PrayersPage() {
   const library = usePrayerLibrary();
+  // ACTUAL reply counts derived from the `prayer_replies` rows (the
+  // `reply_count` column can drift stale — historically doubled).
+  const replyCounts = usePrayerReplyCounts();
   const { openNewPrayer, openPrayer } = useCommunityNavigation();
   const [pendingDelete, setPendingDelete] = useState<Prayer | null>(null);
 
@@ -48,6 +52,7 @@ export function PrayersPage() {
         <PageContainer maxWidth="3xl" className="py-6 pb-16">
           <PrayerList
             prayers={library.prayers}
+            replyCounts={replyCounts}
             isLoading={library.isLoading}
             isError={library.isError}
             error={library.error}

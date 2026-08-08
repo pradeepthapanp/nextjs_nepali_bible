@@ -1,6 +1,6 @@
 "use client";
 
-import { EyeOff, MessageCircle, ThumbsUp } from "lucide-react";
+import { EyeOff } from "lucide-react";
 import type { Prayer } from "../../types";
 import { cn } from "@/utils/cn";
 import { PrayerMeta } from "./prayer-meta";
@@ -11,9 +11,12 @@ export interface PrayerHeaderProps {
 }
 
 /**
- * PrayerHeader — the prayer DETAIL header (the web equivalent of the
- * `_PrayerHeader` in `PrayerDetailsSheet`: title, details, the praying/reply
- * stats + the anonymous badge). Presentational.
+ * PrayerHeader — the prayer DETAIL header: title, details, author meta and
+ * the anonymous badge. The praying/reply COUNTS and the interactive pray
+ * toggle are rendered once, below, by `PrayerDetailPage` — NOT duplicated
+ * here. (The Flutter `_PrayerHeader`'s passive "N Praying / N Replies"
+ * stats row is intentionally dropped on the web so the counts are not shown
+ * twice.) Presentational.
  */
 export function PrayerHeader({ prayer, className }: PrayerHeaderProps) {
   return (
@@ -23,22 +26,12 @@ export function PrayerHeader({ prayer, className }: PrayerHeaderProps) {
         {prayer.details}
       </p>
       <PrayerMeta prayer={prayer} />
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <ThumbsUp className="size-4 text-primary" aria-hidden />
-          {prayer.prayerCount} Praying
+      {prayer.isAnonymous ? (
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <EyeOff className="size-4" aria-hidden />
+          Anonymous
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <MessageCircle className="size-4" aria-hidden />
-          {prayer.replyCount} Replies
-        </span>
-        {prayer.isAnonymous ? (
-          <span className="inline-flex items-center gap-1.5">
-            <EyeOff className="size-4" aria-hidden />
-            Anonymous
-          </span>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }

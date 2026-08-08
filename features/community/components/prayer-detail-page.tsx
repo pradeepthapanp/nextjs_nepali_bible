@@ -78,8 +78,10 @@ export function PrayerDetailPage({ id }: PrayerDetailPageProps) {
               <div className="flex items-center gap-3">
                 <PrayerPrayButton prayerId={detail.prayer.id} />
                 <PrayerCountBadge count={detail.prayerCount} />
+                {/* Show the ACTUAL loaded reply count (matches the list below)
+                    instead of the `reply_count` column, which can drift stale. */}
                 <span className="text-sm text-muted-foreground">
-                  {detail.prayer.replyCount} replies
+                  {detail.replies?.length ?? detail.prayer.replyCount} replies
                 </span>
               </div>
 

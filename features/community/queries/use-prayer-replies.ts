@@ -64,6 +64,8 @@ export function useCreatePrayerReply() {
         ...(previous ?? []),
       ]);
       bumpReplyCountInCache(queryClient, input.prayerId, 1);
+      // Refresh the shared actual-reply-count map (list cards derive from it).
+      void queryClient.invalidateQueries({ queryKey: prayerKeys.replyCounts() });
     },
   });
 }
@@ -138,6 +140,8 @@ export function useDeletePrayerReply() {
       void queryClient.invalidateQueries({
         queryKey: prayerKeys.replies(prayerId),
       });
+      // Refresh the shared actual-reply-count map (list cards derive from it).
+      void queryClient.invalidateQueries({ queryKey: prayerKeys.replyCounts() });
     },
   });
 }

@@ -24,6 +24,10 @@ export interface PrayerReplyService {
   updateReply(input: PrayerReplyUpdate): Promise<PrayerReply>;
   /** Delete a reply row (replaces `deleteReply`). */
   deleteReply(replyId: string): Promise<void>;
+  /** Maps every `prayer_replies` row to an actual per-prayer reply count
+   * (prayerId → count) — lists derive TRUE comment counts from this, since
+   * the `prayers.reply_count` column can drift stale (historically doubled). */
+  getReplyCounts(): Promise<Record<string, number>>;
 }
 
 /** A `prayer_replies` row as returned by Supabase (snake_case columns). */
@@ -100,5 +104,27 @@ export class SupabasePrayerReplyService implements PrayerReplyService {
       .delete()
       .eq("id", replyId);
     unwrap(response);
+  }
+
+  /** Maps every `prayer_replies` row to an actual per-prayer reply count
+   * (prayerId → count). The `prayers.reply_count` column can drift stale
+   * (historically doubled by a double-increment), so lists derive the true
+   * count from the reply rows. Paged in 1000-row chunks (PostgREST caps a
+   * bare `.select()` at 1000 rows). */
+  async getReplyCounts(): Promise<Record<string, number>> {
+    const CHUNK = 1000;
+    const counts: Record<string, number> = {};
+    for (let offset = 0; ; offset += CHUNK) {
+      const response = await this.client
+        .from("prayer_replies")
+        .select("prayer_id")
+        .range(offset, offset + CHUNK - 1);
+      const rows = (unwrap(response) ?? []) as { prayer_id: string }[];
+      for (const row of rows) {
+        counts[row.prayer_id] = (counts[row.prayer_id] ?? 0) + 1;
+      }
+      if (rows.length < CHUNK) break;
+    }
+    return counts;
   }
 }

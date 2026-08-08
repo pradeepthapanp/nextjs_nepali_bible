@@ -32,6 +32,7 @@ export const prayerKeys = {
   count: (id: string) => [...prayerKeys.all(), "count", id] as const,
   replies: (prayerId: string) =>
     [...prayerKeys.all(), "replies", prayerId] as const,
+  replyCounts: () => [...prayerKeys.all(), "reply-counts"] as const,
   hasPrayed: (userId: string, prayerId: string) =>
     [...prayerKeys.all(), "has-prayed", userId, prayerId] as const,
 };

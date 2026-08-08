@@ -324,6 +324,7 @@
     "all": "सबै"
   },
   "reader": {
+    "text": "पाठ",
     "fontSize": "फन्ट साइज",
     "decreaseFontSize": "फन्ट साइज घटाउनुहोस्",
     "increaseFontSize": "फन्ट साइज बढाउनुहोस्",
