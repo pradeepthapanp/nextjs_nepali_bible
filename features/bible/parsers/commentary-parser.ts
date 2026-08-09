@@ -32,6 +32,23 @@ export function parseReferenceTarget(
   return { bookNumber: books[index].bookNumber, chapter, verse };
 }
 
+/**
+ * Parses a numeric book-number reference used by Wiersbe-style anchor links
+ * (`<a href='B:470 21:1-7'>२:१४</a>`): `B:<book> <chapter>:<verseStart>`.
+ * Returns a Reference pointing at the START of the verse range.
+ */
+export function parseBookNumberReference(label: string): Reference | null {
+  const match = /^B:(\d+)\s+(\d+):(\d+)/.exec(label.trim());
+  if (!match) return null;
+  const bookNumber = Number(match[1]);
+  const chapter = Number(match[2]);
+  const verse = Number(match[3]);
+  if (Number.isNaN(bookNumber) || Number.isNaN(chapter) || Number.isNaN(verse)) {
+    return null;
+  }
+  return { bookNumber, chapter, verse };
+}
+
 /** True when an inline node is a hard line break (`<br>`). */
 function isLineBreak(node: InlineNode): boolean {
   return node.type === "line-break";
@@ -72,7 +89,10 @@ export function parseCommentary(
   entry: CommentaryEntry,
   options: CommentaryParseOptions,
 ): CommentaryRenderTree {
+  // Resolve both English-name reflinks ("Gen 1:1") and numeric book-number
+  // anchors ("B:470 21:1-7" — used by Wiersbe outlines).
   const referenceResolver = (label: string) =>
+    parseBookNumberReference(label) ??
     parseReferenceTarget(label, options.books);
   const blocks = trimLeadingBreaks(
     parseVerseText(entry.text, { referenceResolver }),

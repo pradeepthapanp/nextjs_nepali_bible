@@ -54,7 +54,6 @@ import {
 import { ChapterViewer } from "./chapter-viewer";
 import { AudioIndicator } from "./reader/audio-indicator";
 import { ReaderToolbar } from "./reader/reader-toolbar";
-import { ReadingProgressIndicator } from "./reader/reading-progress-indicator";
 
 /**
  * BibleHome — the page-level orchestration for the Bible reader.
@@ -72,7 +71,7 @@ import { ReadingProgressIndicator } from "./reader/reading-progress-indicator";
  *   3. Call the existing React Query hooks (books, version, chapter content).
  *   4/5/6. Loading / error / empty states.
  *   7. Pass data into ChapterViewer (content, version, books, options, nav).
- *   8. Connect ReaderToolbar, AudioIndicator, ReadingProgressIndicator.
+ *   8. Connect ReaderToolbar, AudioIndicator.
  *   9/10/11. Chapter navigation + browser history + deep links (URL is the
  *      source of truth on /bible routes; the reading store mirrors it via
  *      useDeepLink, and progress is persisted via useReadingPosition).
@@ -312,20 +311,8 @@ export function BibleHome({ panels }: BibleHomeProps) {
   // future panels slot.
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+      <header className="sticky top-[65px] z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
         <div className="mx-auto w-full max-w-6xl px-4 pb-2 pt-3">
-          <div className="flex items-center justify-between gap-3">
-            <ReadingProgressIndicator
-              current={position.chapter}
-              total={book?.chapters ?? 0}
-              className="flex-1"
-            />
-            <AudioIndicator
-              isPlaying={isPlaying}
-              onToggle={toggle}
-              disabled={!book}
-            />
-          </div>
           <ReaderToolbar
             fontSize={settings.fontSize}
             lineHeight={settings.lineHeight}
@@ -347,6 +334,13 @@ export function BibleHome({ panels }: BibleHomeProps) {
             chapterLabel={toNepaliDigits(position.chapter)}
             onOpenBook={() => openSelection("book")}
             onOpenChapter={() => openSelection("chapter")}
+            audioIndicator={
+              <AudioIndicator
+                isPlaying={isPlaying}
+                onToggle={toggle}
+                disabled={!book}
+              />
+            }
             onFontSizeChange={settings.setFontSize}
             onLineHeightChange={settings.setLineHeight}
             onParagraphSpacingChange={settings.setParagraphSpacing}

@@ -11,6 +11,8 @@ export interface SongCardProps {
   onOpen?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /** Disables the favorite action (e.g. signed-out users). */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -24,6 +26,7 @@ export function SongCard({
   onOpen,
   isFavorite,
   onToggleFavorite,
+  disabled,
   className,
 }: SongCardProps) {
   return (
@@ -55,6 +58,7 @@ export function SongCard({
             <FavoriteButton
               isFavorite={!!isFavorite}
               onToggle={onToggleFavorite}
+              disabled={disabled}
               className="-m-1 shrink-0"
             />
           ) : null}

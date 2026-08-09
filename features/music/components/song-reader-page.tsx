@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { ListPlus } from "lucide-react";
+import { useAuth } from "@features/auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import { RelatedLinks, type RelatedLinkItem } from "@/components/related/related-links";
 import {
   useFavoriteSongs,
   useLyrics,
@@ -17,13 +17,11 @@ import {
 import { useArtist, useSong } from "../queries";
 import { usePlaylistSelectionStore } from "../store";
 import type { Song } from "../types";
-import { buildMusicUrl } from "../utils/deep-link";
-import { categoryLabel } from "../utils/category";
 import { readerTitle } from "../utils";
 import { ChordDialog } from "../chords";
 import { AddToPlaylistFlow } from "./playlist/add-to-playlist-flow";
 import { FavoriteButton } from "./song/favorite-button";
-import { ReaderFooter } from "./reader/reader-footer";
+import { ReaderNavigation } from "./reader/reader-navigation";
 import { SongReader } from "./reader/song-reader";
 import { SongToolbar } from "./reader/song-toolbar";
 
@@ -49,6 +47,7 @@ export function SongReaderPage() {
   const reader = useSongReader();
   const settings = useSongSettings();
   const favorites = useFavoriteSongs();
+  const { isAuthenticated } = useAuth();
 
   const song = reader.currentSong;
   const { tree, showChords } = useLyrics(song);
@@ -76,25 +75,6 @@ export function SongReaderPage() {
 
   const isFavorite = song ? favorites.isFavorite(song.id) : false;
   const title = song ? readerTitle(song, artist?.name) : "Song";
-
-  // Related content — driven by the song's EXISTING metadata (artistId /
-  // category). Both are real internal routes; nothing is invented.
-  const relatedLinks: RelatedLinkItem[] = [];
-  if (song?.artistId) {
-    relatedLinks.push({
-      href: buildMusicUrl({ kind: "artist", artistId: song.artistId }),
-      label: artist?.name ?? song.artist ?? "Artist",
-      description: "Artist",
-    });
-  }
-  if (song?.category) {
-    relatedLinks.push({
-      href: buildMusicUrl({ kind: "category", category: song.category }),
-      label: categoryLabel(song.category),
-      description: "Category",
-    });
-  }
-
   let body: React.ReactNode;
   if (song && tree) {
     body = (
@@ -126,11 +106,11 @@ export function SongReaderPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+      <header className="sticky top-[65px] z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
         <div className="mx-auto w-full max-w-6xl space-y-2 px-4 pb-3 pt-3">
           <div className="flex items-center justify-between gap-3">
             <h1 className="truncate text-xl font-bold">{title}</h1>
-            {song ? (
+            {song && isAuthenticated ? (
               <div className="flex shrink-0 items-center gap-1">
                 <FavoriteButton
                   isFavorite={isFavorite}
@@ -162,14 +142,13 @@ export function SongReaderPage() {
         >
           {body}
         </main>
-        <ReaderFooter
-          currentPosition={reader.songPosition}
-          total={reader.songs.length}
+        <ReaderNavigation
           onPrev={navigation.previous}
           onNext={navigation.next}
+          canPrev={reader.songPosition > 0}
+          canNext={reader.songPosition < reader.songs.length - 1}
           className="mt-6"
         />
-        <RelatedLinks title="Related" links={relatedLinks} />
       </div>
 
       <AddToPlaylistFlow

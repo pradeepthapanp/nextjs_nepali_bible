@@ -6,6 +6,7 @@ import type {
   Verse,
 } from "../types";
 import {
+  parseBookNumberReference,
   parseCommentary,
   parseReferenceTarget,
   type CommentaryParseOptions,
@@ -87,13 +88,22 @@ export function parseChapterContent(
     ...options.verse,
     referenceResolver:
       options.verse?.referenceResolver ??
-      ((label: string) => parseReferenceTarget(label, books)),
+      ((label: string) =>
+        parseBookNumberReference(label) ?? parseReferenceTarget(label, books)),
   };
 
   const verses: ParsedChapterVerse[] = content.verses.map((verse) => {
     const titles = content.titles.filter((title) => title.verse === verse.verse);
+    // Commentary anchors to its starting verse. Chapter-level entries (verse
+    // number 0/null — e.g. Wiersbe expository outlines) attach to verse 1 so
+    // they render at the top of the chapter.
     const commentary: ParsedChapterCommentary[] = (content.commentaries ?? [])
-      .filter((entry) => entry.verseNumberFrom === verse.verse)
+      .filter(
+        (entry) =>
+          entry.verseNumberFrom === verse.verse ||
+          (verse.verse === 1 &&
+            (entry.verseNumberFrom === 0 || entry.verseNumberFrom == null)),
+      )
       .map((entry) => ({ entry, parsed: parseCommentary(entry, commentaryOptions) }));
     const crossReferences = (content.crossReferences ?? []).filter(
       (reference) => reference.verse === verse.verse,

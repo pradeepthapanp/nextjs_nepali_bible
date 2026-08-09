@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MicVocal, Music2, X } from "lucide-react";
+import { useAuth } from "@features/auth";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -45,6 +46,11 @@ import { SongListItem } from "./song/song-list-item";
  * artist/search/playlist pages are later phases).
  */
 export function MusicHome() {
+  // Signed-out users can browse the catalog, but the favorites / add-to-playlist
+  // actions stay disabled until they sign in.
+  const { isAuthenticated } = useAuth();
+  const actionsDisabled = !isAuthenticated;
+
   // Deep link — the URL is the source of truth for filters on /music routes.
   const { currentLink, navigate } = useMusicDeepLink();
   const { category, setCategory, songs: categorySongs } = useCategoryFilter();
@@ -202,6 +208,7 @@ export function MusicHome() {
           isFavorite: favoriteProps.isFavorite(song.id),
           onToggleFavorite: () => favoriteProps.onToggleFavorite(song),
           onAddToPlaylist: () => handleAddToPlaylist(song),
+          disabled: actionsDisabled,
         })}
       />
     );
@@ -233,6 +240,7 @@ export function MusicHome() {
           isFavorite={favoriteProps.isFavorite}
           onToggleFavorite={favoriteProps.onToggleFavorite}
           onAddToPlaylist={handleAddToPlaylist}
+          disabled={actionsDisabled}
           onOpen={(song, index) =>
             openSongList(
               { type: "artist", artistId: selectedArtistId },
@@ -269,6 +277,7 @@ export function MusicHome() {
           isFavorite={favoriteProps.isFavorite}
           onToggleFavorite={favoriteProps.onToggleFavorite}
           onAddToPlaylist={handleAddToPlaylist}
+          disabled={actionsDisabled}
           onOpen={(song, index) =>
             openSongList({ type: "category", category }, categorySongList, index)
           }
@@ -378,6 +387,8 @@ interface SongRowsProps {
   onToggleFavorite: (song: Song) => void;
   onOpen: (song: Song, index: number) => void;
   onAddToPlaylist?: (song: Song) => void;
+  /** Disables the favorite + add-to-playlist actions (signed-out users). */
+  disabled?: boolean;
 }
 
 /**
@@ -393,6 +404,7 @@ function SongRows({
   onToggleFavorite,
   onOpen,
   onAddToPlaylist,
+  disabled,
 }: SongRowsProps) {
   return (
     <ul className="divide-y divide-border">
@@ -406,6 +418,7 @@ function SongRows({
             isFavorite={isFavorite(song.id)}
             onToggleFavorite={() => onToggleFavorite(song)}
             onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist(song) : undefined}
+            disabled={disabled}
           />
         </li>
       ))}

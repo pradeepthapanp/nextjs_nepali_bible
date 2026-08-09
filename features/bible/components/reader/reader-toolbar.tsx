@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import {
+  faComments,
+  faCross,
+  faHashtag,
+  faLink,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   ALargeSmall,
   AlignCenter,
@@ -8,8 +16,6 @@ import {
   AlignLeft,
   AlignRight,
   ChevronDown,
-  Hash,
-  MessageSquare,
   Minus,
   Plus,
   SlidersHorizontal,
@@ -17,6 +23,7 @@ import {
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
+import { ToggleSwitch } from "@features/settings/components";
 import {
   READER_FONT_FAMILIES,
   READER_PARAGRAPH_SPACING_STEP,
@@ -67,6 +74,8 @@ export interface ReaderToolbarProps {
   chapterLabel?: string;
   onOpenBook?: () => void;
   onOpenChapter?: () => void;
+  /** Audio play/pause control rendered next to the book/chapter selector. */
+  audioIndicator?: React.ReactNode;
   onVersionChange?: (versionId: string) => void;
   onCommentaryChange?: (commentaryId: string) => void;
   onFontSizeChange?: (value: number) => void;
@@ -132,12 +141,10 @@ export function ReaderToolbar({
   chapterLabel,
   onOpenBook,
   onOpenChapter,
+  audioIndicator,
   className,
 }: ReaderToolbarProps) {
-  const [displayOpen, setDisplayOpen] = useState(false);
   const t = useTranslations("reader");
-  const hasDisplayTogglesOn =
-    redLetters || showComments || showCrossReferences || showVerseNumbers;
 
   return (
     <div
@@ -161,6 +168,9 @@ export function ReaderToolbar({
         </>
       ) : null}
 
+      {/* Audio play/pause — rendered next to the book/chapter selector. */}
+      {audioIndicator}
+
       {/* Text controls popup — collapses font size, line height, paragraph
           spacing and alignment into one compact dropdown so the toolbar stays
           a single row. */}
@@ -169,28 +179,13 @@ export function ReaderToolbar({
         lineHeight={lineHeight}
         paragraphSpacing={paragraphSpacing}
         alignment={alignment}
+        fontFamily={fontFamily}
         onFontSizeChange={onFontSizeChange}
         onLineHeightChange={onLineHeightChange}
         onParagraphSpacingChange={onParagraphSpacingChange}
         onAlignmentChange={onAlignmentChange}
+        onFontFamilyChange={onFontFamilyChange}
       />
-
-      <span className="h-6 w-px bg-border" aria-hidden />
-
-      {/* Font family select */}
-      <div role="group" aria-label={t("fontFamily")} className="flex items-center gap-1">
-        <SelectControl
-          id="reader-font-family"
-          label={t("fontFamily")}
-          value={fontFamily}
-          options={READER_FONT_FAMILIES.map((family) => ({
-            value: family,
-            label: family,
-          }))}
-          onChange={onFontFamilyChange}
-          className="w-44"
-        />
-      </div>
 
       <span className="h-6 w-px bg-border" aria-hidden />
 
@@ -205,7 +200,7 @@ export function ReaderToolbar({
             label: `${version.shortCode} — ${version.name}`,
           }))}
           onChange={onVersionChange}
-          className="w-52"
+          className="w-44"
         />
       </div>
 
@@ -222,86 +217,25 @@ export function ReaderToolbar({
             label: commentary.name,
           }))}
           onChange={onCommentaryChange}
-          className="w-52"
+          className="w-44"
         />
       </div>
 
       <span className="h-6 w-px bg-border" aria-hidden />
 
-      {/* Display toggle button — a compact "more-context" control that
-          collapses the reader toggles (red letters, comments, references,
-          verse numbers) until expanded. A small dot marks when any toggle is
-          on. */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setDisplayOpen((open) => !open)}
-        aria-expanded={displayOpen}
-        className="h-8 gap-1.5 px-2 text-xs"
-      >
-        <SlidersHorizontal className="size-3.5" aria-hidden />
-        {t("display")}
-        {hasDisplayTogglesOn ? (
-          <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-        ) : null}
-        <ChevronDown
-          className={cn(
-            "size-3.5 transition-transform",
-            displayOpen && "rotate-180",
-          )}
-          aria-hidden
-        />
-      </Button>
-
-      {displayOpen ? (
-        <div
-          role="group"
-          aria-label={t("display")}
-          className="flex basis-full flex-wrap items-center gap-x-4 gap-y-2 border-t pt-2"
-        >
-          {/* Reading theme — moved under Display */}
-          <div role="group" aria-label={t("readingTheme")} className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              {t("readingTheme")}
-            </span>
-            <SelectControl
-              id="reader-theme"
-              label={t("readingTheme")}
-              value={theme}
-              options={READER_THEMES.map(({ value }) => ({
-                value,
-                label: t(THEME_KEYS[value]),
-              }))}
-              onChange={onThemeChange}
-              className="w-36"
-            />
-          </div>
-
-          <span className="h-6 w-px bg-border" aria-hidden />
-
-          <ToggleChip
-            pressed={redLetters}
-            onPress={onRedLettersChange}
-            label={t("redLetters")}
-          />
-          <ToggleChip
-            pressed={showComments}
-            onPress={onCommentsChange}
-            label={t("comments")}
-          />
-          <ToggleChip
-            pressed={showCrossReferences}
-            onPress={onCrossReferencesChange}
-            label={t("references")}
-          />
-          <ToggleChip
-            pressed={showVerseNumbers}
-            onPress={onVerseNumbersChange}
-            label={t("verseNumbers")}
-            icon={<Hash className="size-3.5" aria-hidden />}
-          />
-        </div>
-      ) : null}
+      {/* Display settings popover — reading theme + reader toggles. */}
+      <DisplayControlsPopover
+        theme={theme}
+        redLetters={redLetters}
+        showComments={showComments}
+        showCrossReferences={showCrossReferences}
+        showVerseNumbers={showVerseNumbers}
+        onThemeChange={onThemeChange}
+        onRedLettersChange={onRedLettersChange}
+        onCommentsChange={onCommentsChange}
+        onCrossReferencesChange={onCrossReferencesChange}
+        onVerseNumbersChange={onVerseNumbersChange}
+      />
     </div>
   );
 }
@@ -378,19 +312,23 @@ function TextControlsPopover({
   lineHeight,
   paragraphSpacing,
   alignment,
+  fontFamily,
   onFontSizeChange,
   onLineHeightChange,
   onParagraphSpacingChange,
   onAlignmentChange,
+  onFontFamilyChange,
 }: {
   fontSize: number;
   lineHeight: number;
   paragraphSpacing: number;
   alignment: ReaderAlignment;
+  fontFamily: string;
   onFontSizeChange?: (value: number) => void;
   onLineHeightChange?: (value: number) => void;
   onParagraphSpacingChange?: (value: number) => void;
   onAlignmentChange?: (alignment: ReaderAlignment) => void;
+  onFontFamilyChange?: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -444,6 +382,20 @@ function TextControlsPopover({
           aria-label={t("text")}
           className="absolute right-0 top-full z-50 mt-2 w-64 space-y-3 rounded-xl border bg-card p-3 text-card-foreground shadow-lg"
         >
+          <SettingRow label={t("fontFamily")}>
+            <SelectControl
+              id="reader-font-family"
+              label={t("fontFamily")}
+              value={fontFamily}
+              options={READER_FONT_FAMILIES.map((family) => ({
+                value: family,
+                label: family,
+              }))}
+              onChange={onFontFamilyChange}
+              className="w-36"
+            />
+          </SettingRow>
+
           <SettingRow label={t("fontSize")}>
             <Stepper
               display={`${fontSize}`}
@@ -566,31 +518,164 @@ function SelectControl<T extends string>({
   );
 }
 
-function ToggleChip({
-  pressed,
-  onPress,
-  label,
-  icon,
+/**
+ * Compact "Display" dropdown — the reader display settings (reading theme,
+ * red letters, comments, references, verse numbers) in a popover matching the
+ * Text controls popover. Presentational: receives the current settings and
+ * reports changes via callbacks (same contract as the inline controls it
+ * replaces).
+ */
+function DisplayControlsPopover({
+  theme,
+  redLetters,
+  showComments,
+  showCrossReferences,
+  showVerseNumbers,
+  onThemeChange,
+  onRedLettersChange,
+  onCommentsChange,
+  onCrossReferencesChange,
+  onVerseNumbersChange,
 }: {
-  pressed: boolean;
-  onPress?: (value: boolean) => void;
+  theme: ReaderTheme;
+  redLetters: boolean;
+  showComments: boolean;
+  showCrossReferences: boolean;
+  showVerseNumbers: boolean;
+  onThemeChange?: (theme: ReaderTheme) => void;
+  onRedLettersChange?: (value: boolean) => void;
+  onCommentsChange?: (value: boolean) => void;
+  onCrossReferencesChange?: (value: boolean) => void;
+  onVerseNumbersChange?: (value: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("reader");
+  const hasTogglesOn =
+    redLetters || showComments || showCrossReferences || showVerseNumbers;
+
+  // Close on outside pointerdown or Escape while the popover is open.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className="h-8 gap-1.5 px-2 text-xs"
+      >
+        <SlidersHorizontal className="size-3.5" aria-hidden />
+        {t("display")}
+        {hasTogglesOn ? (
+          <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+        ) : null}
+        <ChevronDown
+          className={cn(
+            "size-3.5 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </Button>
+
+      {open ? (
+        <div
+          role="group"
+          aria-label={t("display")}
+          className="absolute right-0 top-full z-50 mt-2 w-72 space-y-3 rounded-xl border bg-card p-3 text-card-foreground shadow-lg"
+        >
+          <SettingRow label={t("readingTheme")}>
+            <SelectControl
+              id="reader-theme"
+              label={t("readingTheme")}
+              value={theme}
+              options={READER_THEMES.map(({ value }) => ({
+                value,
+                label: t(THEME_KEYS[value]),
+              }))}
+              onChange={onThemeChange}
+              className="w-36"
+            />
+          </SettingRow>
+
+          <div className="space-y-1 border-t pt-2">
+            <ToggleSwitchRow
+              icon={faCross}
+              label={t("redLetters")}
+              checked={redLetters}
+              onChange={onRedLettersChange}
+            />
+            <ToggleSwitchRow
+              icon={faComments}
+              label={t("comments")}
+              checked={showComments}
+              onChange={onCommentsChange}
+            />
+            <ToggleSwitchRow
+              icon={faLink}
+              label={t("references")}
+              checked={showCrossReferences}
+              onChange={onCrossReferencesChange}
+            />
+            <ToggleSwitchRow
+              icon={faHashtag}
+              label={t("verseNumbers")}
+              checked={showVerseNumbers}
+              onChange={onVerseNumbersChange}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One labeled toggle row: Font Awesome icon + label on the left, switch on the right. */
+function ToggleSwitchRow({
+  icon,
+  label,
+  checked,
+  onChange,
+}: {
+  icon: IconDefinition;
   label: string;
-  icon?: React.ReactNode;
+  checked: boolean;
+  onChange?: (value: boolean) => void;
 }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => onPress?.(!pressed)}
-      disabled={!onPress}
-      aria-pressed={pressed}
-      className={cn(
-        "h-8 gap-1.5 px-2 text-xs",
-        pressed ? "bg-primary/10 text-primary" : "text-muted-foreground",
-      )}
-    >
-      {icon ?? <MessageSquare className="size-3.5" aria-hidden />}
-      {label}
-    </Button>
+    <div className="flex items-center justify-between gap-2 py-1">
+      <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <FontAwesomeIcon icon={icon} className="w-3.5" aria-hidden />
+        {label}
+      </span>
+      <ToggleSwitch
+        checked={checked}
+        onChange={(value) => onChange?.(value)}
+        label={label}
+        disabled={!onChange}
+      />
+    </div>
   );
 }

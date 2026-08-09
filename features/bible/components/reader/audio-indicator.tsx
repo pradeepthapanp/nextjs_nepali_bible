@@ -45,9 +45,9 @@ export function AudioIndicator({
       ) : (
         <Play className="size-4" aria-hidden />
       )}
-      <span className="text-xs font-medium">
+      {/* <span className="text-xs font-medium">
         {isPlaying ? "Pause" : "Play audio"}
-      </span>
+      </span> */}
     </Button>
   );
 }

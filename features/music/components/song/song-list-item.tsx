@@ -19,6 +19,8 @@ export interface SongListItemProps {
   onAddToPlaylist?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /** Disables the favorite + add-to-playlist actions (e.g. signed-out users). */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export function SongListItem({
   onAddToPlaylist,
   isFavorite,
   onToggleFavorite,
+  disabled,
   className,
 }: SongListItemProps) {
   const leading = isOthersCategory(song.category) ? (
@@ -83,7 +86,12 @@ export function SongListItem({
             event.stopPropagation();
             onAddToPlaylist();
           }}
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+          disabled={disabled}
+          className={cn(
+            "rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground",
+            disabled &&
+              "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-muted-foreground",
+          )}
         >
           <Plus className="size-4" aria-hidden />
         </button>
@@ -95,6 +103,7 @@ export function SongListItem({
             event.stopPropagation();
             onToggleFavorite();
           }}
+          disabled={disabled}
           className="shrink-0"
         />
       ) : null}

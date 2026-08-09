@@ -101,6 +101,19 @@ export function createDefaultRegistry(): TagRegistry {
     return [{ type: "reference-link", target, label }];
   });
 
+  // Wiersbe-style Bible reference anchors (`<a href='B:470 21:1-7'>२:१४</a>`)
+  // resolve through the injected referenceResolver and render as reference
+  // links. Any other anchor keeps its plain children (the previous
+  // unknown-tag behaviour).
+  registry.register("a", ({ children, attrs, options }) => {
+    const href = attrs.href?.trim() ?? "";
+    const target = options.referenceResolver?.(href) ?? null;
+    if (/^B:\d+/.test(href) && target) {
+      return [{ type: "reference-link", target, label: flattenText(children) }];
+    }
+    return children;
+  });
+
   // Structural breaks.
   registry.register("pb", () => [{ type: "paragraph-break" }]);
   registry.register("br", () => [{ type: "line-break" }]);
