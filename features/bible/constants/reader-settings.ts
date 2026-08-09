@@ -33,6 +33,8 @@ export interface ReaderSettings {
   showVerseNumbers: boolean;
   /** Selected commentary book id (defaults to the app default). */
   commentaryId: string;
+  /** Show the English NIV parallel verse under each Nepali verse (default ON). */
+  showEnglishVerses: boolean;
 }
 
 /** Font sizes (px) — stepper + keyboard shortcuts clamp to this range. */
@@ -94,4 +96,5 @@ export const READER_SETTINGS_DEFAULTS: ReaderSettings = {
   showCrossReferences: true,
   showVerseNumbers: true,
   commentaryId: DEFAULT_COMMENTARY.id,
+  showEnglishVerses: true,
 };

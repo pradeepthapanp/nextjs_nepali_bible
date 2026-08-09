@@ -22,6 +22,8 @@ export interface QuillAdapterOptions {
   readOnly?: boolean;
   /** The SHARED `UploadService` — used only for inline image embeds. */
   upload: UploadService;
+  /** Storage folder for inline image embeds (e.g. "articles", "notes"). */
+  imageUploadFolder: string;
   /** Fired with the resulting HTML after every user edit. */
   onChange?: (html: string) => void;
   onSelectionChange?: (selection: EditorSelection | null) => void;
@@ -41,7 +43,7 @@ export interface QuillAdapterOptions {
  * SINGLE CONVERSION BOUNDARY: this class (through `HtmlConverter`, which it
  * exclusively owns) is the ONLY place HTML ⇄ Delta happens. The public surface
  * is HTML (`loadHtml` / `getHtml`), selection, formatting commands, undo/redo
- * and the insert operations — Delta never leaves `features/articles/editor`.
+ * and the insert operations — Delta never leaves `@/components/editor`.
  *
  * Internally it owns a Quill instance and composes the managers:
  * `selection`, `history`, `commands`, `images`, `clipboard`, `autosave`.
@@ -77,7 +79,7 @@ export class QuillAdapter {
     this.selection = new SelectionManager(quill, options.onSelectionChange);
     this.history = new EditorHistory(quill);
     this.commands = new EditorCommands(quill);
-    this.images = new ImageEmbedHandler(quill, options.upload);
+    this.images = new ImageEmbedHandler(quill, options.upload, options.imageUploadFolder);
     this.clipboard = new ClipboardHandler(quill, this.images, options.container);
     this.autosave = new AutoSaveManager({
       getHtml: () => this.getHtml(),

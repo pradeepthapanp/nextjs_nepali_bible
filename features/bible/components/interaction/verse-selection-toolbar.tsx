@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 import {
@@ -26,6 +27,7 @@ export interface VerseSelectionToolbarProps {
 }
 
 export function VerseSelectionToolbar({ className }: VerseSelectionToolbarProps) {
+  const router = useRouter();
   const verses = useVerseInteractionStore((s) => s.verses);
   const clear = useVerseInteractionStore((s) => s.clear);
   const actionsMap = useVerseActionRegistry((s) => s.actions);
@@ -48,7 +50,7 @@ export function VerseSelectionToolbar({ className }: VerseSelectionToolbarProps)
     mode: verses.length > 1 ? "multi" : "single",
     verses,
   };
-  const context = { selection, clear };
+  const context = { selection, clear, navigate: (path: string) => router.push(path) };
 
   return (
     <div

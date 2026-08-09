@@ -26,6 +26,7 @@ import {
   useChapterContent,
   useCommentaryHasContent,
   useCommentaryVersions,
+  useEnglishVerses,
   useReadingProgress,
   useVersionHasVerses,
 } from "../queries";
@@ -182,6 +183,23 @@ export function BibleHome({ panels }: BibleHomeProps) {
     },
   );
 
+  // English NIV parallel verses — a dedicated per-chapter query (whole chapter
+  // in ONE request, no N+1). `enabled` follows the reader setting, so turning
+  // the toggle off stops further English requests; the OUTPUT is also gated so
+  // React Query's cached data never renders while the toggle is off.
+  const englishQuery = useEnglishVerses(
+    position.bookNumber,
+    position.chapter,
+    {
+      enabled:
+        settings.showEnglishVerses &&
+        Boolean(versionId && position.bookNumber && position.chapter),
+    },
+  );
+  const englishVerses = settings.showEnglishVerses
+    ? englishQuery.data
+    : undefined;
+
   // Related articles — published articles tagged with the CURRENT chapter via
   // the existing `related_book_number`/`related_chapter` columns (the reverse
   // of an article's "Related Bible chapter"). Articles store the CANONICAL
@@ -279,6 +297,7 @@ export function BibleHome({ panels }: BibleHomeProps) {
         version={version ?? DEFAULT_BIBLE_VERSION}
         books={books}
         parseOptions={parseOptions}
+        englishVerses={englishVerses}
         // Reference links open the referenced passage in the reader (port of
         // the Flutter `ReferenceVersesSheet` / `CmtParser.openReference`
         // navigation). All three go through the single `goTo` entry point.
@@ -324,6 +343,7 @@ export function BibleHome({ panels }: BibleHomeProps) {
             showComments={settings.showComments}
             showCrossReferences={settings.showCrossReferences}
             showVerseNumbers={settings.showVerseNumbers}
+            showEnglishVerses={settings.showEnglishVerses}
             versionId={versionId ?? DEFAULT_BIBLE_VERSION.id}
             versions={versions ?? []}
             onVersionChange={goToVersion}
@@ -351,6 +371,7 @@ export function BibleHome({ panels }: BibleHomeProps) {
             onCommentsChange={settings.setShowComments}
             onCrossReferencesChange={settings.setShowCrossReferences}
             onVerseNumbersChange={settings.setShowVerseNumbers}
+            onEnglishVersesChange={settings.setShowEnglishVerses}
           />
         </div>
       </header>

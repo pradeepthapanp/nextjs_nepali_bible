@@ -2,7 +2,7 @@
  * Internal types for the Quill Editor Platform.
  *
  * These are the ONLY public-shaped types the editor exposes. Quill `Delta`
- * types are used internally (inside `features/articles/editor`) but never
+ * types are used internally (inside `@/components/editor`) but never
  * appear on the public surface — the adapter exposes HTML, selection and
  * commands only.
  */

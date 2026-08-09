@@ -44,6 +44,8 @@ export interface VerseActionContext {
   selection: VerseSelection;
   /** Clears the current selection (and any native text selection). */
   clear: () => void;
+  /** Client-side navigation (e.g. to the notes editor) — optional. */
+  navigate?: (path: string) => void;
 }
 
 /** Where an action should appear. */

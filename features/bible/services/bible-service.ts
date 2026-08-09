@@ -18,7 +18,15 @@ import { unwrap } from "./helpers";
  * version-specific verses tables, `bible_verse_titles`) with no schema or SQL
  * changes. Browser client for React Query; a server client can be passed in
  * for Server Components.
+ *
+ * The English NIV parallel text lives in its own table (`bible_verses_niv_en`)
+ * with the SAME schema and book numbering as the Nepali verses tables
+ * (book_number / chapter / verse / uuid / text) — verified against the live
+ * backend. `getEnglishVerses` reads a whole chapter in ONE query (no N+1).
  */
+
+/** The English NIV parallel-verses table (same schema/numbering as the Nepali tables). */
+export const ENGLISH_VERSES_TABLE = "bible_verses_niv_en";
 
 export interface BibleService {
   /** All available Bible versions (replaces `getAllBibles`). */
@@ -37,6 +45,12 @@ export interface BibleService {
   getVerse(versionId: string, reference: Reference): Promise<Verse | null>;
   /** A single verse by row uuid (replaces `getSingleVerseByUuid`). */
   getVerseByUuid(versionId: string, uuid: string): Promise<Verse | null>;
+  /**
+   * English NIV parallel verses for a chapter (WEB-FIRST — the web reader's
+   * parallel-English toggle). Same book/chapter/verse identifiers as the
+   * Nepali tables; the WHOLE chapter is fetched in one query.
+   */
+  getEnglishVerses(bookNumber: number, chapter: number): Promise<Verse[]>;
   /** Section titles for a chapter (replaces `getVerseTitles`). */
   getVerseTitles(
     bookNumber: number,
@@ -226,6 +240,19 @@ export class SupabaseBibleService implements BibleService {
       .maybeSingle();
     const row = unwrap(response) as VerseRow | null;
     return row ? mapVerse(row) : null;
+  }
+
+  async getEnglishVerses(
+    bookNumber: number,
+    chapter: number,
+  ): Promise<Verse[]> {
+    const response = await this.client
+      .from(ENGLISH_VERSES_TABLE)
+      .select()
+      .eq("book_number", bookNumber)
+      .eq("chapter", chapter)
+      .order("verse");
+    return unwrap(response).map(mapVerse);
   }
 
   async getVerseTitles(

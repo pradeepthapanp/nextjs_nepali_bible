@@ -8,7 +8,7 @@ import { QuillDeltaToHtmlConverter } from "quill-delta-to-html";
  * This is the ONLY module that touches the conversion packages / Quill's
  * clipboard, and it is used EXCLUSIVELY by `QuillAdapter` (the single public
  * conversion boundary). No other file in the app converts HTML ⇄ Delta — Delta
- * never leaves `features/articles/editor`.
+ * never leaves `@/components/editor`.
  *
  *   - Delta → HTML: `quill-delta-to-html` (the JS original of Flutter's
  *     `vsc_quill_delta_to_html`). The `divider` embed (a custom blot that

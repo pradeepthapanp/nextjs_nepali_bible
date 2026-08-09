@@ -32,6 +32,10 @@ export const bibleKeys = {
   resolvedCrossReferences: (versionId: string) =>
     [...bibleKeys.all, "cross-references", "resolved", versionId] as const,
 
+  /** English NIV parallel verses for a chapter (whole chapter, one query). */
+  englishVerses: (bookNumber: number, chapter: number) =>
+    [...bibleKeys.all, "english-verses", bookNumber, chapter] as const,
+
   commentary: (commentaryId: string, bookNumber: number, chapter: number) =>
     [...bibleKeys.all, "commentary", commentaryId, bookNumber, chapter] as const,
   commentaryVersions: () => [...bibleKeys.all, "commentaries"] as const,
@@ -47,10 +51,6 @@ export const bibleKeys = {
 
   highlights: {
     all: () => [...bibleKeys.all, "highlights"] as const,
-  },
-
-  notes: {
-    all: () => [...bibleKeys.all, "notes"] as const,
   },
 
   audio: (bookNumber: number, chapter: number) =>

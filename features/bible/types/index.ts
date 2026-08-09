@@ -13,7 +13,6 @@ export * from "./bible-version";
 export * from "./cross-reference";
 export * from "./commentary";
 export * from "./highlight";
-export * from "./note";
 export * from "./search-result";
 export * from "./reader";
 export * from "./audio";

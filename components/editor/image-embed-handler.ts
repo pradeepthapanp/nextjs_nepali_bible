@@ -1,6 +1,5 @@
 import type Quill from "quill";
 import type { UploadService } from "@/services/upload-service";
-import { ARTICLE_IMAGE_UPLOAD_FOLDER } from "../constants";
 import { fileExtension } from "@/utils/content-type";
 
 /**
@@ -10,12 +9,14 @@ import { fileExtension } from "@/utils/content-type";
  * Uploads go through the SHARED `UploadService` (the edge-function + XHR logic
  * lives only in `@/services/upload-service` — nothing is duplicated here);
  * the returned media URL is inserted as a Quill `image` embed. Delta is never
- * exposed.
+ * exposed. The storage folder is caller-supplied (`imageUploadFolder`), so the
+ * shared platform is feature-agnostic (articles → `articles`, notes → `notes`).
  */
 export class ImageEmbedHandler {
   constructor(
     private readonly quill: Quill,
     private readonly upload: UploadService,
+    private readonly imageUploadFolder: string,
   ) {}
 
   /** Upload a picked/pasted image file and insert it at the caret. */
@@ -24,7 +25,7 @@ export class ImageEmbedHandler {
     onProgress?: (progress: number) => void,
   ): Promise<string> {
     const ext = fileExtension(file.name);
-    const path = `${ARTICLE_IMAGE_UPLOAD_FOLDER}/editor/${Date.now()}.${ext}`;
+    const path = `${this.imageUploadFolder}/editor/${Date.now()}.${ext}`;
     const url = await this.upload.uploadFile(file, path, onProgress);
     this.insertImageUrl(url);
     return url;

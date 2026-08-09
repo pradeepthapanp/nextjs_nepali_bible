@@ -66,6 +66,13 @@ export const mainNav: NavItem[] = [
     descriptionKey: "nav.noticesDesc",
   },
   {
+    label: "Notes",
+    labelKey: "nav.notes",
+    href: "/notes",
+    icon: "notes",
+    descriptionKey: "nav.notesDesc",
+  },
+  {
     label: "Quiz",
     labelKey: "nav.quiz",
     href: "/quiz",

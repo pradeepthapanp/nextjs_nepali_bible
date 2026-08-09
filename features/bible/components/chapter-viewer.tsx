@@ -6,12 +6,14 @@ import { useVerseInteraction } from "../hooks";
 import {
   formatCrossReferences,
   parseChapterContent,
+  parseVerse,
   type ParsedChapter,
   type ParsedChapterCommentary,
   type ReferenceLinkNode,
   type RendererRegistry,
   type TitleRenderTree,
   type VerseParseOptions,
+  type VerseRenderTree,
 } from "@features/bible/parsers";
 import type {
   Book,
@@ -21,6 +23,7 @@ import type {
   CrossReference,
   Reference,
   SelectedVerse,
+  Verse,
 } from "@features/bible/types";
 import { toNepaliDigits } from "@features/bible/utils";
 import { ChapterContainer } from "./chapter/chapter-container";
@@ -69,6 +72,9 @@ export interface ChapterViewerProps {
   books?: Book[];
   /** Options forwarded to the verse engine (redLetters, searchQuery, plugins). */
   parseOptions?: VerseParseOptions;
+  /** English NIV parallel verses for this chapter (the "English Verses" toggle).
+   * Parsed with the same engine and rendered under each matching Nepali verse. */
+  englishVerses?: Verse[];
   /** Pre-computed parser output; when omitted it is derived from `content`. */
   parsed?: ParsedChapter;
   /** Custom renderer registry; defaults to the standard verse registry. */
@@ -94,6 +100,7 @@ export function ChapterViewer({
   version,
   books,
   parseOptions,
+  englishVerses,
   parsed,
   registry,
   activeVerseId,
@@ -150,6 +157,24 @@ export function ChapterViewer({
     [books, content.bookNumber],
   );
 
+  // English NIV parallel verses — parsed with the SAME verse engine as Nepali
+  // (language "en" → Arabic numbers; verse number hidden since the Nepali
+  // verse already shows it; red letters follow the reader setting). Keyed by
+  // verse number so a missing English verse simply renders nothing.
+  const englishTrees = useMemo(() => {
+    const map = new Map<number, VerseRenderTree>();
+    for (const verse of englishVerses ?? []) {
+      map.set(
+        verse.verse,
+        parseVerse(verse, "en", {
+          verseNumber: false,
+          redLetters: parseOptions?.redLetters,
+        }),
+      );
+    }
+    return map;
+  }, [englishVerses, parseOptions?.redLetters]);
+
   // SelectedVerse snapshots (data-layer-independent) + the chapter order used
   // for Shift+click range extension.
   const selectedVerses = useMemo<SelectedVerse[]>(
@@ -189,6 +214,7 @@ export function ChapterViewer({
           key={item.verse.uuid}
           item={item}
           books={books ?? []}
+          englishTree={englishTrees.get(item.verse.verse)}
           active={activeVerseId === item.verse.uuid}
           selected={selectedIds.has(item.verse.uuid)}
           selectedVerse={selectedVerseById.get(item.verse.uuid)}
@@ -226,6 +252,8 @@ export function ChapterViewer({
 interface ChapterVerseProps {
   item: ParsedChapter["verses"][number];
   books: Book[];
+  /** Parsed English NIV verse for this verse number (undefined → omit). */
+  englishTree?: VerseRenderTree;
   selected: boolean;
   active: boolean;
   selectedVerse?: SelectedVerse;
@@ -241,6 +269,7 @@ interface ChapterVerseProps {
 function ChapterVerse({
   item,
   books,
+  englishTree,
   selected,
   active,
   selectedVerse,
@@ -253,6 +282,31 @@ function ChapterVerse({
   onOpenCrossReference,
 }: ChapterVerseProps) {
   const { verse, tree, titles, commentary, crossReferences } = item;
+  const { renderBlock } = useVerseRender();
+
+  // Wrapped interaction handlers — shared by the Nepali verse AND the English
+  // block so clicking either translation selects the SAME verse (both remain
+  // associated with one selection/highlight/copy/notes unit).
+  const pointerDown =
+    selectedVerse && onPointerDown
+      ? (event: React.PointerEvent) => onPointerDown(selectedVerse, event)
+      : undefined;
+  const pointerUp =
+    selectedVerse && onPointerUp
+      ? (event: React.PointerEvent) => onPointerUp(selectedVerse, event)
+      : undefined;
+  const pointerMove =
+    selectedVerse && onPointerMove
+      ? (event: React.PointerEvent) => onPointerMove(selectedVerse, event)
+      : undefined;
+  const keyDown =
+    selectedVerse && onKeyDown
+      ? (event: React.KeyboardEvent) => onKeyDown(selectedVerse, event)
+      : undefined;
+  const contextMenu =
+    selectedVerse && onContextMenu
+      ? (event: React.MouseEvent) => onContextMenu(selectedVerse, event)
+      : undefined;
 
   return (
     <div
@@ -266,32 +320,40 @@ function ChapterVerse({
         tree={tree}
         verseId={verse.uuid}
         selected={selected}
-        onPointerDown={
-          selectedVerse && onPointerDown
-            ? (event) => onPointerDown(selectedVerse, event)
-            : undefined
-        }
-        onPointerUp={
-          selectedVerse && onPointerUp
-            ? (event) => onPointerUp(selectedVerse, event)
-            : undefined
-        }
-        onPointerMove={
-          selectedVerse && onPointerMove
-            ? (event) => onPointerMove(selectedVerse, event)
-            : undefined
-        }
-        onKeyDown={
-          selectedVerse && onKeyDown
-            ? (event) => onKeyDown(selectedVerse, event)
-            : undefined
-        }
-        onContextMenu={
-          selectedVerse && onContextMenu
-            ? (event) => onContextMenu(selectedVerse, event)
-            : undefined
-        }
+        onPointerDown={pointerDown}
+        onPointerUp={pointerUp}
+        onPointerMove={pointerMove}
+        onKeyDown={keyDown}
+        onContextMenu={contextMenu}
       />
+
+      {/* English NIV parallel verse — rendered under the Nepali verse with the
+          same engine; visually secondary (smaller + muted), inherits the reader
+          font size / line height / alignment / theme. Omitted when the English
+          verse for this number does not exist. */}
+      {englishTree ? (
+        <div
+          data-english-verse
+          onPointerDown={pointerDown}
+          onPointerUp={pointerUp}
+          onPointerMove={pointerMove}
+          onContextMenu={contextMenu}
+          className={cn(
+            "mt-2 rounded-lg border-l-2 border-border/50 pl-3 text-[0.92em] text-muted-foreground",
+            selected && "bg-primary/5 ring-1 ring-primary/20",
+          )}
+        >
+          <span
+            data-segment="english-label"
+            className="mb-0.5 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60"
+          >
+            NIV
+          </span>
+          {englishTree.blocks.map((block, index) => (
+            <div key={index}>{renderBlock(block)}</div>
+          ))}
+        </div>
+      ) : null}
 
       {commentary.length > 0 ? (
         <VerseCommentaryList

@@ -9,11 +9,11 @@ import { shareAction } from "./share";
  * Built-in verse actions.
  *
  * Copy / Copy-reference / Share / Highlight are the real, implemented
- * plugins. Future actions (Note, Bookmark, Compare, AI) register the same way
- * — one plugin object + `registerVerseAction(...)` — with zero changes to the
- * toolbar, overlay or context menu. We deliberately do NOT register stubs for
- * unimplemented future actions (no placeholder business logic); they register
- * when their features ship.
+ * plugins. The "Add Note" action (`note.ts`) is DISABLED (commented out)
+ * until a separate verse-note table exists. Future actions (Note, Bookmark,
+ * Compare, AI) register the same way — one plugin object +
+ * `registerVerseAction(...)` — with zero changes to the toolbar, overlay or
+ * context menu.
  */
 
 let builtInRegistered = false;

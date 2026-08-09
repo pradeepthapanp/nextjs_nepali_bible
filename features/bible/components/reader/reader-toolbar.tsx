@@ -7,6 +7,7 @@ import {
   faComments,
   faCross,
   faHashtag,
+  faLanguage,
   faLink,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -62,6 +63,8 @@ export interface ReaderToolbarProps {
   showComments: boolean;
   showCrossReferences: boolean;
   showVerseNumbers: boolean;
+  /** Show the English NIV parallel verse under each Nepali verse. */
+  showEnglishVerses: boolean;
   /** Current Bible version id + available versions (Bible version dropdown). */
   versionId: string;
   versions: BibleVersion[];
@@ -88,6 +91,7 @@ export interface ReaderToolbarProps {
   onCommentsChange?: (value: boolean) => void;
   onCrossReferencesChange?: (value: boolean) => void;
   onVerseNumbersChange?: (value: boolean) => void;
+  onEnglishVersesChange?: (value: boolean) => void;
   className?: string;
 }
 
@@ -131,6 +135,8 @@ export function ReaderToolbar({
   onCommentsChange,
   onCrossReferencesChange,
   onVerseNumbersChange,
+  showEnglishVerses,
+  onEnglishVersesChange,
   versionId,
   versions,
   onVersionChange,
@@ -230,11 +236,13 @@ export function ReaderToolbar({
         showComments={showComments}
         showCrossReferences={showCrossReferences}
         showVerseNumbers={showVerseNumbers}
+        showEnglishVerses={showEnglishVerses}
         onThemeChange={onThemeChange}
         onRedLettersChange={onRedLettersChange}
         onCommentsChange={onCommentsChange}
         onCrossReferencesChange={onCrossReferencesChange}
         onVerseNumbersChange={onVerseNumbersChange}
+        onEnglishVersesChange={onEnglishVersesChange}
       />
     </div>
   );
@@ -531,28 +539,36 @@ function DisplayControlsPopover({
   showComments,
   showCrossReferences,
   showVerseNumbers,
+  showEnglishVerses,
   onThemeChange,
   onRedLettersChange,
   onCommentsChange,
   onCrossReferencesChange,
   onVerseNumbersChange,
+  onEnglishVersesChange,
 }: {
   theme: ReaderTheme;
   redLetters: boolean;
   showComments: boolean;
   showCrossReferences: boolean;
   showVerseNumbers: boolean;
+  showEnglishVerses: boolean;
   onThemeChange?: (theme: ReaderTheme) => void;
   onRedLettersChange?: (value: boolean) => void;
   onCommentsChange?: (value: boolean) => void;
   onCrossReferencesChange?: (value: boolean) => void;
   onVerseNumbersChange?: (value: boolean) => void;
+  onEnglishVersesChange?: (value: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const t = useTranslations("reader");
   const hasTogglesOn =
-    redLetters || showComments || showCrossReferences || showVerseNumbers;
+    redLetters ||
+    showComments ||
+    showCrossReferences ||
+    showVerseNumbers ||
+    showEnglishVerses;
 
   // Close on outside pointerdown or Escape while the popover is open.
   useEffect(() => {
@@ -644,6 +660,12 @@ function DisplayControlsPopover({
               label={t("verseNumbers")}
               checked={showVerseNumbers}
               onChange={onVerseNumbersChange}
+            />
+            <ToggleSwitchRow
+              icon={faLanguage}
+              label={t("englishVerses")}
+              checked={showEnglishVerses}
+              onChange={onEnglishVersesChange}
             />
           </div>
         </div>

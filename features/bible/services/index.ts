@@ -7,7 +7,6 @@ import { SupabaseCommentaryService } from "./commentary-service";
 import { SupabaseCrossReferenceService } from "./cross-reference-service";
 import { SupabaseDictionaryService } from "./dictionary-service";
 import { SupabaseHighlightService } from "./highlight-service";
-import { SupabaseNoteService } from "./note-service";
 import { LocalProgressService } from "./progress-service";
 import { SupabaseSearchService } from "./search-service";
 
@@ -15,7 +14,6 @@ export * from "./bible-service";
 export * from "./commentary-service";
 export * from "./cross-reference-service";
 export * from "./highlight-service";
-export * from "./note-service";
 export * from "./audio-service";
 export * from "./search-service";
 export * from "./dictionary-service";
@@ -32,7 +30,6 @@ export interface BibleServices {
   commentary: SupabaseCommentaryService;
   crossReference: SupabaseCrossReferenceService;
   highlight: SupabaseHighlightService;
-  note: SupabaseNoteService;
   audio: SupabaseAudioService;
   search: SupabaseSearchService;
   dictionary: SupabaseDictionaryService;
@@ -58,7 +55,6 @@ export function createBibleServices(
     commentary: new SupabaseCommentaryService(client),
     crossReference: new SupabaseCrossReferenceService(client, bible),
     highlight: new SupabaseHighlightService(client),
-    note: new SupabaseNoteService(client),
     audio: new SupabaseAudioService(client),
     search: new SupabaseSearchService(client, bible),
     dictionary: new SupabaseDictionaryService(),

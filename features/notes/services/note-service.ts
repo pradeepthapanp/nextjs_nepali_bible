@@ -1,30 +1,39 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { unwrap } from "@/services/helpers";
 import type { Note, NoteInput } from "../types";
-import { unwrap } from "./helpers";
 
 /**
  * Note service — a direct port of the SupabaseRepository note methods
  * (`fetchNotes`, `insertNote`, `updateNote`, `deleteNote`, `deleteNotes`,
- * `deleteAllNotes`). Uses the existing `notes` table with no schema changes.
+ * `deleteAllNotes`) from `lib/providers/supabase/supabase_repository_provider.dart`.
+ * Uses the existing `notes` table with no schema changes (verified: columns
+ * `id, user_id, title, category, color, description, created_at, updated_at`).
  *
- * NOTE: the `Note.reference` field (verse-linked notes) is a web enhancement —
- * the `notes` table has no such column, so it is never read or written here
- * and stays `undefined` for DB-backed notes.
+ * Notes are private/user-owned — RLS enforces row ownership; the service only
+ * ever reads/writes via the signed-in client and scopes queries by `user_id`
+ * (faithful to Flutter). No client-side-only permission checks (UI gates are
+ * presentational only).
  */
 
 export interface NoteService {
-  /** All of the current user's notes. */
+  /** All of the current user's notes (newest first — Flutter `fetchNotes`). */
   getNotes(): Promise<Note[]>;
-  /** A single note by id. */
+  /** A single note by id (WEB-FIRST `maybeSingle`). */
   getNote(id: string): Promise<Note | null>;
+  /** Insert a note (Flutter `insertNote`; requires a session). */
   createNote(input: NoteInput): Promise<Note>;
+  /** Update the editable fields (Flutter `updateNote`). */
   updateNote(id: string, patch: Partial<NoteInput>): Promise<Note>;
+  /** Delete a single note (Flutter `deleteNote`). */
   deleteNote(id: string): Promise<void>;
+  /** Delete several notes (Flutter `deleteNotes`). */
   deleteNotes(ids: string[]): Promise<void>;
+  /** Delete all of the current user's notes (Flutter `deleteAllNotes`). */
   deleteAllNotes(): Promise<void>;
 }
 
-interface NoteRow {
+/** A `notes` row as returned by Supabase (snake_case columns). */
+export interface NoteRow {
   id: string;
   user_id: string;
   title: string;
@@ -35,7 +44,8 @@ interface NoteRow {
   updated_at: string;
 }
 
-function mapNote(row: NoteRow): Note {
+/** Maps a `notes` row to the domain `Note` (mirrors `Note.fromJson`). */
+export function mapNote(row: NoteRow): Note {
   return {
     id: row.id,
     userId: row.user_id,
@@ -90,9 +100,9 @@ export class SupabaseNoteService implements NoteService {
       .insert({
         user_id: userId,
         title: input.title,
-        category: input.category,
-        color: input.color,
-        description: input.description,
+        category: input.category ?? null,
+        color: input.color ?? null,
+        description: input.description ?? null,
       })
       .select()
       .single();
@@ -104,9 +114,9 @@ export class SupabaseNoteService implements NoteService {
       .from("notes")
       .update({
         title: patch.title,
-        category: patch.category,
-        color: patch.color,
-        description: patch.description,
+        category: patch.category ?? null,
+        color: patch.color ?? null,
+        description: patch.description ?? null,
       })
       .eq("id", id)
       .select()
@@ -115,17 +125,20 @@ export class SupabaseNoteService implements NoteService {
   }
 
   async deleteNote(id: string): Promise<void> {
-    await this.client.from("notes").delete().eq("id", id);
+    const response = await this.client.from("notes").delete().eq("id", id);
+    unwrap(response);
   }
 
   async deleteNotes(ids: string[]): Promise<void> {
     if (ids.length === 0) return;
-    await this.client.from("notes").delete().in("id", ids);
+    const response = await this.client.from("notes").delete().in("id", ids);
+    unwrap(response);
   }
 
   async deleteAllNotes(): Promise<void> {
     const userId = await this.currentUserId();
     if (!userId) return;
-    await this.client.from("notes").delete().eq("user_id", userId);
+    const response = await this.client.from("notes").delete().eq("user_id", userId);
+    unwrap(response);
   }
 }

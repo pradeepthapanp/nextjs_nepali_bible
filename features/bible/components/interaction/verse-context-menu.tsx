@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eraser } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/utils/cn";
 import {
   useVerseActionRegistry,
@@ -25,6 +26,7 @@ export interface VerseContextMenuProps {
 }
 
 export function VerseContextMenu({ className }: VerseContextMenuProps) {
+  const router = useRouter();
   const position = useVerseInteractionStore((s) => s.contextMenu);
   const verses = useVerseInteractionStore((s) => s.verses);
   const clear = useVerseInteractionStore((s) => s.clear);
@@ -65,7 +67,7 @@ export function VerseContextMenu({ className }: VerseContextMenuProps) {
     mode: verses.length > 1 ? "multi" : "single",
     verses,
   };
-  const context = { selection, clear };
+  const context = { selection, clear, navigate: (path: string) => router.push(path) };
 
   // Clamp to the viewport (guard `window` for SSR/prerender).
   const style = position

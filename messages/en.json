@@ -44,6 +44,7 @@
     "maps": "Maps",
     "prayers": "Prayers",
     "notices": "Notices",
+    "notes": "Notes",
     "quiz": "Quiz",
     "settings": "Settings",
     "profile": "Profile",
@@ -68,6 +69,7 @@
     "mapsDesc": "Explore maps of the biblical world.",
     "prayersDesc": "Share and respond to prayer requests from the community.",
     "noticesDesc": "Church and community notices and announcements.",
+    "notesDesc": "Your personal Bible study notes.",
     "quizDesc": "Test your Bible knowledge with quizzes."
   },
   "footer": {
@@ -348,6 +350,7 @@
     "comments": "Comments",
     "references": "References",
     "verseNumbers": "Verse numbers",
+    "englishVerses": "English Verses",
     "reset": "Reset",
     "themeSystem": "System",
     "themeLight": "Light Mode",

@@ -42,6 +42,7 @@ interface ReaderSettingsState extends ReaderSettings {
   setShowComments: (value: boolean) => void;
   setShowCrossReferences: (value: boolean) => void;
   setShowVerseNumbers: (value: boolean) => void;
+  setShowEnglishVerses: (value: boolean) => void;
   setCommentaryId: (commentaryId: string) => void;
   reset: () => void;
 }
@@ -86,6 +87,7 @@ export const useReaderSettings = create<ReaderSettingsState>()(
       setShowCrossReferences: (showCrossReferences) =>
         set({ showCrossReferences }),
       setShowVerseNumbers: (showVerseNumbers) => set({ showVerseNumbers }),
+      setShowEnglishVerses: (showEnglishVerses) => set({ showEnglishVerses }),
       setCommentaryId: (commentaryId) => set({ commentaryId }),
       reset: () => set({ ...READER_SETTINGS_DEFAULTS }),
     }),
