@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist_Mono, Noto_Sans_Devanagari } from "next/font/google";
 import { GlobalAudioPlayer } from "@/components/audio/global-audio-player";
 import { SiteNav } from "@/components/navigation/site-nav";
@@ -99,6 +101,8 @@ export default async function RootLayout({
             <GlobalAudioPlayer />
           </Providers>
         </NextIntlClientProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
