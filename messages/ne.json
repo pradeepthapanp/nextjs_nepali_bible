@@ -377,7 +377,10 @@
     "openBook": "पुस्तक खोल्नुहोस्",
     "openChapter": "अध्याय खोल्नुहोस्",
     "readingProgress": "पठन प्रगति",
-    "relatedArticles": "सम्बन्धित लेखहरू"
+    "relatedArticles": "सम्बन्धित लेखहरू",
+    "reference": "सन्दर्भ",
+    "close": "बन्द गर्नुहोस्",
+    "openInReader": "पाठकमा खोल्नुहोस्"
   },
   "devotion": {
     "heading": "आजको वचन",

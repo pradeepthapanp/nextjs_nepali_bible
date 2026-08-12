@@ -38,7 +38,7 @@ export interface ReaderSettings {
 }
 
 /** Font sizes (px) — stepper + keyboard shortcuts clamp to this range. */
-export const READER_FONT_SIZE_DEFAULT = 17;
+export const READER_FONT_SIZE_DEFAULT = 20;
 export const READER_FONT_SIZE_MIN = 12;
 export const READER_FONT_SIZE_MAX = 30;
 

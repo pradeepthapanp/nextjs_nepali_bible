@@ -431,7 +431,7 @@ function VerseCommentaryList({
                 the `--reader-font-size` var set by the reader on <main>. */}
             <div
               className="min-w-0 flex-1 space-y-1"
-              style={{ fontSize: "calc(var(--reader-font-size, 17px) - 2px)" }}
+              style={{ fontSize: "calc(var(--reader-font-size, 20px) - 2px)" }}
             >
               {blocks}
             </div>

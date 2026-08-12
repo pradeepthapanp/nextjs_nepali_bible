@@ -377,7 +377,10 @@
     "openBook": "Open book",
     "openChapter": "Open chapter",
     "readingProgress": "Reading progress",
-    "relatedArticles": "Related articles"
+    "relatedArticles": "Related articles",
+    "reference": "Reference",
+    "close": "Close",
+    "openInReader": "Open in reader"
   },
   "devotion": {
     "heading": "Today's Word",

@@ -17,3 +17,4 @@ export * from "./bible-route-dispatcher";
 export * from "./audio-bible-page";
 export * from "./selection";
 export * from "./interaction";
+export * from "./reference-popup";

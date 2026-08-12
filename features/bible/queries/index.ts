@@ -5,6 +5,7 @@ export * from "./use-bibles";
 export * from "./use-books";
 export * from "./use-chapter";
 export * from "./use-verse";
+export * from "./use-verse-range";
 export * from "./use-cross-references";
 export * from "./use-commentary";
 export * from "./use-english-verses";

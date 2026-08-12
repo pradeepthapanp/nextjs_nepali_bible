@@ -10,3 +10,4 @@ export * from "./bible-selection-store";
 export * from "./verse-interaction-store";
 export * from "./verse-action-registry";
 export * from "./highlight-store";
+export * from "./reference-popup-store";

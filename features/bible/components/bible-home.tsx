@@ -34,9 +34,11 @@ import {
   useBibleSelectionStore,
   useReaderSettings,
   useReadingStore,
+  useReferencePopupStore,
   useVerseInteractionStore,
 } from "../store";
 import { VerseInteractionHost } from "./interaction";
+import { ReferenceVersesPopup } from "./reference-popup";
 import { BibleSelectionDialog } from "./selection";
 import {
   canonicalNumber,
@@ -221,6 +223,17 @@ export function BibleHome({ panels }: BibleHomeProps) {
 
   const { goTo, goToVersion } = useBibleNavigation();
   const openSelection = useBibleSelectionStore((state) => state.openDialog);
+  // Reference popup — reflinks / cross-references / commentary markers open an
+  // inline passage popup instead of navigating to a separate page.
+  const openReferencePopup = useReferencePopupStore(
+    (state) => state.openReference,
+  );
+  const openCrossReferencePopup = useReferencePopupStore(
+    (state) => state.openCrossReference,
+  );
+  const openCommentaryPopup = useReferencePopupStore(
+    (state) => state.openCommentary,
+  );
   // Play audio for the chapter currently on screen (URL position wins).
   const { isPlaying, toggle } = useAudioBible(
     position.bookNumber,
@@ -298,25 +311,52 @@ export function BibleHome({ panels }: BibleHomeProps) {
         books={books}
         parseOptions={parseOptions}
         englishVerses={englishVerses}
-        // Reference links open the referenced passage in the reader (port of
-        // the Flutter `ReferenceVersesSheet` / `CmtParser.openReference`
-        // navigation). All three go through the single `goTo` entry point.
+        // Reference links open an inline POPUP with the referenced passage
+        // (port of the Flutter `ReferenceVersesSheet`), instead of navigating
+        // to a separate page. The "Open in reader" button inside the popup
+        // still goes through the single `goTo` entry point.
         onOpenCommentary={(entry) =>
-          goTo(
-            entry.bookNumber,
-            entry.chapterNumberFrom ?? 1,
-            entry.verseNumberFrom ?? 1,
+          openCommentaryPopup(
+            {
+              bookNumber: entry.bookNumber,
+              chapter: entry.chapterNumberFrom ?? 1,
+              verse: entry.verseNumberFrom ?? 1,
+            },
+            entry.marker,
           )
         }
-        onOpenCrossReference={(reference) =>
-          goTo(
-            reference.bookTo,
-            reference.chapterTo,
-            reference.verseToStart ?? reference.verseToEnd ?? 1,
-          )
-        }
+        onOpenCrossReference={(reference) => {
+          const bookTo = books?.find(
+            (book) => book.bookNumber === reference.bookTo,
+          );
+          const bookFrom = books?.find(
+            (book) => book.bookNumber === reference.book,
+          );
+          openCrossReferencePopup(
+            {
+              bookNumber: reference.bookTo,
+              chapter: reference.chapterTo,
+              verse:
+                reference.verseToStart ?? reference.verseToEnd ?? 1,
+            },
+            {
+              sourceLabel: bookFrom
+                ? `${bookFrom.longName} ${toNepaliDigits(reference.chapter)}:${toNepaliDigits(reference.verse)}`
+                : "",
+              targetLabel: bookTo
+                ? `${bookTo.longName} ${toNepaliDigits(reference.chapterTo)}`
+                : "",
+              verseToStart: reference.verseToStart,
+              verseToEnd: reference.verseToEnd,
+            },
+          );
+        }}
         onOpenReference={(reference) =>
-          goTo(reference.bookNumber, reference.chapter, reference.verse ?? 1)
+          openReferencePopup({
+            bookNumber: reference.bookNumber,
+            chapter: reference.chapter,
+            verse: reference.verse ?? 1,
+          })
         }
         onPreviousChapter={handlePrevious}
         onNextChapter={handleNext}
@@ -418,6 +458,7 @@ export function BibleHome({ panels }: BibleHomeProps) {
       </div>
 
       <BibleSelectionDialog />
+      <ReferenceVersesPopup />
       <VerseInteractionHost />
     </div>
   );
