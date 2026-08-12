@@ -114,6 +114,18 @@ export function createDefaultRegistry(): TagRegistry {
     return children;
   });
 
+  // Block paragraphs — commentary HTML uses `<p>` for paragraph boundaries
+  // (wrapped in a transparent `<div>`). Emitting a break on both sides lets
+  // `buildBlocks` split each `<p>` into its own block. Empty flushes are
+  // skipped, so adjacent/leading `<p>` tags collapse cleanly. Verse and
+  // title text never use `<p>` (they use `<pb/>`), so this is commentary-only
+  // in practice.
+  registry.register("p", ({ children }) => [
+    { type: "paragraph-break" },
+    ...children,
+    { type: "paragraph-break" },
+  ]);
+
   // Structural breaks.
   registry.register("pb", () => [{ type: "paragraph-break" }]);
   registry.register("br", () => [{ type: "line-break" }]);
