@@ -339,7 +339,7 @@ function ChapterVerse({
           onPointerMove={pointerMove}
           onContextMenu={contextMenu}
           className={cn(
-            "mt-2 rounded-lg border-l-2 border-border/50 pl-3 text-[0.92em] text-muted-foreground",
+            "mt-2 rounded-lg border-l-2 border-border/50 pl-3 text-muted-foreground",
             selected && "bg-primary/5 ring-1 ring-primary/20",
           )}
         >
@@ -381,8 +381,9 @@ function VerseTitles({ titles }: { titles: TitleRenderTree[] }) {
       {titles.map((title, index) => (
         <h2
           key={index}
-          className="text-lg font-semibold text-primary"
+          className="font-bold text-primary"
           data-segment="title"
+          style={{ fontSize: "calc(var(--reader-font-size, 20px) + 1px)" }}
         >
           {title.blocks.map((block, i) => (
             <div key={i}>{renderBlock(block)}</div>
@@ -427,11 +428,11 @@ function VerseCommentaryList({
                 }
               />
             ) : null}
-            {/* Commentary text tracks the verse font size (2px smaller) via
-                the `--reader-font-size` var set by the reader on <main>. */}
+            {/* Commentary text matches the verse font size (was 2px smaller)
+                via the `--reader-font-size` var set by the reader on <main>. */}
             <div
               className="min-w-0 flex-1 space-y-1"
-              style={{ fontSize: "calc(var(--reader-font-size, 20px) - 2px)" }}
+              style={{ fontSize: "var(--reader-font-size, 20px)" }}
             >
               {blocks}
             </div>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { cn } from "@/utils/cn";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -431,7 +432,15 @@ export function BibleHome({ panels }: BibleHomeProps) {
         </div>
       ) : null}
 
-      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div
+        className={cn(
+          "mx-auto grid w-full max-w-7xl gap-6 px-4 py-6",
+          // Reserve the reader-panels column only when panels are rendered;
+          // otherwise the chapter text fills (almost) the full page width and
+          // stays centered.
+          panels ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-1",
+        )}
+      >
         <main
           className="min-w-0"
           style={

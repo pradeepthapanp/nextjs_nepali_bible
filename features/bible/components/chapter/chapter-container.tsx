@@ -28,7 +28,7 @@ export function ChapterContainer({
       aria-label="Chapter"
       data-version-id={dataVersionId}
       className={cn(
-        "mx-auto w-full max-w-3xl space-y-3 px-0 py-4 text-foreground",
+        "mx-auto w-full max-w-6xl space-y-3 px-0 py-4 text-foreground",
         className,
       )}
     >

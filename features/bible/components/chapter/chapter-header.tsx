@@ -27,7 +27,10 @@ export function ChapterHeader({
   const label = chapterLabel ?? toNepaliDigits(chapterNumber);
 
   return (
-    <h2 className={cn("text-xl font-semibold leading-tight", className)}>
+    <h2
+      className={cn("font-bold leading-tight", className)}
+      style={{ fontSize: "calc(var(--reader-font-size, 20px) + 1px)" }}
+    >
       {bookName} {label}
     </h2>
   );

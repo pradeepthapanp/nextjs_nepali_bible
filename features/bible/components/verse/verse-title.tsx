@@ -33,7 +33,11 @@ export function VerseTitle({ node, className }: VerseTitleProps) {
   }
 
   return (
-    <h3 data-block="title" className={cn("text-base font-semibold text-primary", className)}>
+    <h3
+      data-block="title"
+      className={cn("font-bold text-primary", className)}
+      style={{ fontSize: "calc(var(--reader-font-size, 20px) + 1px)" }}
+    >
       {children}
     </h3>
   );
