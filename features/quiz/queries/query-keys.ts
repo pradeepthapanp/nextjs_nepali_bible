@@ -20,4 +20,7 @@ export const quizKeys = {
   all: ["quiz"] as const,
   questions: (param: QuizParam) =>
     ["quiz", "questions", param] as const,
+  /** Whether a book (1..66) has published questions (web-first linking check). */
+  hasQuestions: (bookNumber: number) =>
+    ["quiz", "hasQuestions", bookNumber] as const,
 };

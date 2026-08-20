@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PlaylistDetailPage } from "@/features/music/components/playlist-detail-page";
 import { createMusicServices } from "@/features/music/services";
+import { derivePlaylistDescription } from "@/features/music/utils";
 import { JsonLd } from "@/components/json-ld";
 import {
   breadcrumbListGraph,
@@ -10,18 +11,34 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { pageDescriptions, seo } from "@/lib/seo";
 
+/**
+ * Resolves a playlist (best effort — playlists are user-scoped, so
+ * signed-out callers get nothing).
+ */
+async function findPlaylist(id: string) {
+  const services = createMusicServices(await createClient());
+  const playlists = await services.playlist.fetchPlaylists();
+  const playlist = playlists.find((entry) => entry.id === id);
+  if (!playlist?.name) return null;
+  // Real song count (existing `playlist_songs` data) — used by the
+  // description derivation so same-named playlists stay distinct.
+  const songs = await services.playlistSong.fetchPlaylistSongs(id);
+  return { playlist, songCount: songs.length };
+}
+
 /** CollectionPage structured data for a playlist (private → best effort). */
 async function playlistJsonLd(id: string): Promise<JsonLdGraph[] | null> {
   const path = `/playlists/${id}`;
   try {
-    const services = createMusicServices(await createClient());
-    const playlists = await services.playlist.fetchPlaylists();
-    const playlist = playlists.find((entry) => entry.id === id);
-    if (playlist?.name) {
+    const found = await findPlaylist(id);
+    if (found) {
+      const { playlist, songCount } = found;
       return [
         collectionPageGraph({
           title: playlist.name,
-          description: playlist.description || `${playlist.name} — ${pageDescriptions.playlists}`,
+          // Derived from EXISTING playlist name/description/count — never
+          // invented, and unique even across same-named playlists.
+          description: derivePlaylistDescription(playlist, songCount),
           path,
         }),
         breadcrumbListGraph([
@@ -44,13 +61,12 @@ export async function generateMetadata({
   const { id } = await params;
   const path = `/playlists/${id}`;
   try {
-    const services = createMusicServices(await createClient());
-    const playlists = await services.playlist.fetchPlaylists();
-    const playlist = playlists.find((entry) => entry.id === id);
-    if (playlist?.name) {
+    const found = await findPlaylist(id);
+    if (found) {
+      const { playlist, songCount } = found;
       return seo({
         title: playlist.name,
-        description: playlist.description || `${playlist.name} — ${pageDescriptions.playlists}`,
+        description: derivePlaylistDescription(playlist, songCount),
         path,
       });
     }

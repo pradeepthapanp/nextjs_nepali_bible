@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Article } from "../../types";
+import { deriveArticleExcerpt } from "../../utils/excerpt";
 import { timeAgo } from "../../utils/time-ago";
 import { DeleteArticleDialog } from "../dialogs/delete-article-dialog";
 import { CategoryChip } from "./category-chip";
@@ -37,6 +38,11 @@ export function ArticleCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // The displayed excerpt: the stored one when present, else derived from the
+  // article's own body (existing content — never invented). Memoized so the
+  // derivation runs once per render.
+  const excerpt = useMemo(() => deriveArticleExcerpt(article), [article]);
+
   return (
     <Card interactive className={cn("p-0", className)}>
       <div className="flex items-start gap-1 p-4">
@@ -50,9 +56,9 @@ export function ArticleCard({
           <h3 className="line-clamp-2 font-semibold leading-tight text-foreground">
             {article.title}
           </h3>
-          {article.excerpt ? (
+          {excerpt ? (
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-              {article.excerpt}
+              {excerpt}
             </p>
           ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">

@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { PageContainer } from "@/components/ui/page-container";
+import { useBooks } from "@features/bible/queries";
+import {
+  buildBibleUrl,
+  canonicalBook,
+  referenceToString,
+} from "@features/bible/utils";
+import {
+  RelatedLinks,
+  type RelatedLinkItem,
+} from "@/components/related/related-links";
 import {
   QUIZ_DEFAULT_DIFFICULTY,
   QUIZ_DEFAULT_LANGUAGE,
@@ -83,6 +93,29 @@ export function QuizPlayPage() {
   const total = questions?.length ?? 0;
   const answered = answers[currentIndex] !== null;
   const selectedIndex = answers[currentIndex] ?? null;
+
+  // The canonical book list — resolves the current question's `bookNumber`
+  // (1..66 canonical) to the app's book for the related-chapter URL/label.
+  const { data: books } = useBooks();
+
+  // Related Bible chapter — the CURRENT question's real `bookNumber`/`chapter`
+  // metadata (quiz_questions stores the 1..66 canonical number). Rendered only
+  // when both are present and the book resolves; no invented relationship.
+  const currentQuestion = questions?.[currentIndex];
+  const relatedBibleChapter = useMemo<RelatedLinkItem | null>(() => {
+    if (!currentQuestion?.bookNumber || !currentQuestion.chapter) return null;
+    const book = canonicalBook(books ?? [], currentQuestion.bookNumber);
+    if (!book) return null; // unresolvable — never link to a wrong book
+    const reference = {
+      bookNumber: book.bookNumber,
+      chapter: currentQuestion.chapter,
+    };
+    return {
+      href: buildBibleUrl({ kind: "chapter", ...reference }),
+      label: referenceToString(reference, books ?? []),
+      description: "Related Bible chapter",
+    };
+  }, [currentQuestion, books]);
 
   const correct = questions
     ? questions.reduce(
@@ -176,6 +209,11 @@ export function QuizPlayPage() {
               answered={answered}
               selectedIndex={selectedIndex}
               onSelect={selectAnswer}
+            />
+
+            <RelatedLinks
+              title="Related Bible chapter"
+              links={relatedBibleChapter ? [relatedBibleChapter] : []}
             />
 
             <div className="flex items-center justify-between gap-2">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { MapRouteDispatcher } from "@/features/maps/pages/map-route-dispatcher";
 import { createMapServices } from "@/features/maps/services";
-import { cleanMapTitle } from "@/features/maps/utils";
+import { cleanMapTitle, deriveMapDescription } from "@/features/maps/utils";
 import { parseMapPath } from "@/features/maps/utils/map-deep-link";
 import { JsonLd } from "@/components/json-ld";
 import {
@@ -32,7 +32,8 @@ export async function generateMetadata({
         const title = cleanMapTitle(map.title);
         return seo({
           title,
-          description: `${title} — ${pageDescriptions.maps}`,
+          // Derived from the map's EXISTING title + topic — never invented.
+          description: deriveMapDescription(map),
           path,
         });
       }

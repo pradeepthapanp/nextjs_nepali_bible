@@ -15,6 +15,13 @@ import {
 import { ARTICLE_CATEGORY_LABELS } from "@features/articles/constants";
 import { useArticlesByRelatedChapter } from "@features/articles/queries";
 import {
+  QUIZ_DEFAULT_DIFFICULTY,
+  QUIZ_DEFAULT_LANGUAGE,
+  QUIZ_DEFAULT_LIMIT,
+} from "@features/quiz/constants";
+import { useQuizBookHasQuestions } from "@features/quiz/queries";
+import { buildQuizUrl } from "@features/quiz/utils";
+import {
   DEFAULT_BIBLE_VERSION,
   DEFAULT_BOOK_NUMBER,
   DEFAULT_CHAPTER_NUMBER,
@@ -236,7 +243,7 @@ export function BibleHome({ panels }: BibleHomeProps) {
     (state) => state.openCommentary,
   );
   // Play audio for the chapter currently on screen (URL position wins).
-  const { isPlaying, toggle } = useAudioBible(
+  const { isPlaying, toggle, track: audioTrack } = useAudioBible(
     position.bookNumber,
     position.chapter,
   );
@@ -245,6 +252,48 @@ export function BibleHome({ panels }: BibleHomeProps) {
     () => books?.find((entry) => entry.bookNumber === position.bookNumber),
     [books, position.bookNumber],
   );
+
+  // Related audio — the CURRENT chapter's audio track (existing `nnrv_audios`
+  // data, already fetched for the play button). Surfaced as a deep link to
+  // the Audio Bible page when the track exists; hides itself otherwise.
+  const relatedAudioLink: RelatedLinkItem | null =
+    chapterQuery.data && audioTrack
+      ? {
+          href: `/audio-bible?book=${position.bookNumber}&chapter=${position.chapter}`,
+          label: book
+            ? `${book.longName} ${toNepaliDigits(position.chapter)}`
+            : toNepaliDigits(position.chapter),
+          description: "Related audio",
+        }
+      : null;
+
+  // Related quiz — PUBLISHED quiz questions exist for the current BOOK
+  // (`quiz_questions.book_number` stores the 1..66 canonical number, so the
+  // app book number is converted first). The quiz RPC filters by book only,
+  // so the link is book-scoped (`/quiz/play?book=…`) and only rendered when
+  // questions actually exist — no invented link.
+  const canonicalBookForQuiz = useMemo(
+    () =>
+      chapterQuery.data && books
+        ? canonicalNumber(books, position.bookNumber)
+        : undefined,
+    [chapterQuery.data, books, position.bookNumber],
+  );
+  const { data: bookHasQuiz } = useQuizBookHasQuestions(canonicalBookForQuiz);
+  const relatedQuizLink: RelatedLinkItem | null =
+    canonicalBookForQuiz && bookHasQuiz
+      ? {
+          href: buildQuizUrl({
+            kind: "play",
+            difficulty: QUIZ_DEFAULT_DIFFICULTY,
+            limit: QUIZ_DEFAULT_LIMIT,
+            bookNumber: canonicalBookForQuiz,
+            languageCode: QUIZ_DEFAULT_LANGUAGE,
+          }),
+          label: book ? `${book.longName} Quiz` : "Bible Quiz",
+          description: "Related quiz",
+        }
+      : null;
 
   // 9/10/11. Navigation — targets computed with the shared pure utilities,
   // then applied through `useBibleNavigation` (URL + history + persisted
@@ -458,6 +507,8 @@ export function BibleHome({ panels }: BibleHomeProps) {
         >
           {body}
           <RelatedLinks title={t("relatedArticles")} links={relatedArticleLinks} />
+          <RelatedLinks title="Related audio" links={relatedAudioLink ? [relatedAudioLink] : []} />
+          <RelatedLinks title="Related quiz" links={relatedQuizLink ? [relatedQuizLink] : []} />
         </main>
         {panels ? (
           <aside className="hidden lg:block" aria-label="Reader panels">

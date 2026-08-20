@@ -1,3 +1,9 @@
+import {
+  firstSentences,
+  normalizeText,
+  stripMarkup,
+  titledDescription,
+} from "@/lib/seo-text";
 import type { LyricsLanguage, Song } from "../types";
 import { lyricsForLanguage } from "./reading";
 
@@ -36,3 +42,29 @@ export function songToPlainText(
 ): string {
   return stripChordBrackets(lyricsForLanguage(song, options?.language ?? "np"));
 }
+
+/**
+ * Generates a song description from EXISTING content only — no invented
+ * theology. Derives from (in priority order):
+ *   1. the song's own `description` column when present;
+ *   2. the first lyric sentence (chords stripped);
+ *   3. the artist + category + song number metadata.
+ * The result always carries the song title, so descriptions are unique
+ * across songs (no duplicates).
+ */
+export function deriveSongDescription(song: Song): string {
+  const title = song.name ?? "Song";
+  if (song.description?.trim()) return normalizeText(song.description);
+
+  const lyrics = stripMarkup(lyricsForLanguage(song, "np"));
+  const lyricLine = firstSentences(lyrics, 1, 120);
+  if (lyricLine) {
+    return titledDescription(title, lyricLine);
+  }
+
+  const detail = [song.artist, song.category, song.songNumber]
+    .filter(Boolean)
+    .join(" · ");
+  return titledDescription(title, detail || "Nepali song");
+}
+

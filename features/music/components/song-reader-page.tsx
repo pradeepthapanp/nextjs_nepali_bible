@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ListPlus } from "lucide-react";
 import { useAuth } from "@features/auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import {
+  RelatedLinks,
+  type RelatedLinkItem,
+} from "@/components/related/related-links";
 import {
   useFavoriteSongs,
   useLyrics,
@@ -17,7 +21,12 @@ import {
 import { useArtist, useSong } from "../queries";
 import { usePlaylistSelectionStore } from "../store";
 import type { Song } from "../types";
-import { readerTitle } from "../utils";
+import {
+  buildMusicUrl,
+  categoryLabel,
+  deriveSongDescription,
+  readerTitle,
+} from "../utils";
 import { ChordDialog } from "../chords";
 import { AddToPlaylistFlow } from "./playlist/add-to-playlist-flow";
 import { FavoriteButton } from "./song/favorite-button";
@@ -52,6 +61,31 @@ export function SongReaderPage() {
   const song = reader.currentSong;
   const { tree, showChords } = useLyrics(song);
   const { data: artist } = useArtist(song?.artistId ?? undefined);
+
+  // Related links — driven by the song's EXISTING metadata (no invented
+  // relationships): the `artist_id` FK → the artist detail page, and the
+  // concrete `category` → the category-filtered song list. `others` is the
+  // artist-linked sentinel (its "category" link would duplicate the artist
+  // link), so it is skipped there.
+  const artistLinks = useMemo<RelatedLinkItem[]>(() => {
+    if (!song?.artistId || !artist?.name) return [];
+    return [
+      {
+        href: buildMusicUrl({ kind: "artist", artistId: song.artistId }),
+        label: artist.name,
+      },
+    ];
+  }, [song, artist]);
+
+  const categoryLinks = useMemo<RelatedLinkItem[]>(() => {
+    if (!song?.category || song.category === "others") return [];
+    return [
+      {
+        href: buildMusicUrl({ kind: "category", category: song.category }),
+        label: categoryLabel(song.category),
+      },
+    ];
+  }, [song]);
 
   // Shared add-to-playlist flow — the same dialog as the Music list.
   const [addToPlaylistSong, setAddToPlaylistSong] = useState<Song | null>(null);
@@ -131,6 +165,11 @@ export function SongReaderPage() {
               </div>
             ) : null}
           </div>
+          {song ? (
+            <p className="line-clamp-2 text-sm text-muted-foreground">
+              {deriveSongDescription(song)}
+            </p>
+          ) : null}
           <SongToolbar />
         </div>
       </header>
@@ -149,6 +188,8 @@ export function SongReaderPage() {
           canNext={reader.songPosition < reader.songs.length - 1}
           className="mt-6"
         />
+        <RelatedLinks title="Related artist" links={artistLinks} className="mt-8" />
+        <RelatedLinks title="Related category" links={categoryLinks} className="mt-8" />
       </div>
 
       <AddToPlaylistFlow

@@ -12,12 +12,20 @@ import { toast } from "sonner";
 import { useSupabase } from "@/providers/supabase-provider";
 import { Button } from "@/components/ui/button";
 import { copyTextToClipboard } from "@/utils/clipboard";
-import { useBooks } from "@features/bible/queries";
+import { useBooks, useChapterAudio } from "@features/bible/queries";
 import {
   buildBibleUrl,
   canonicalBook,
   referenceToString,
+  toNepaliDigits,
 } from "@features/bible/utils";
+import {
+  QUIZ_DEFAULT_DIFFICULTY,
+  QUIZ_DEFAULT_LANGUAGE,
+  QUIZ_DEFAULT_LIMIT,
+} from "@features/quiz/constants";
+import { useQuizBookHasQuestions } from "@features/quiz/queries";
+import { buildQuizUrl } from "@features/quiz/utils";
 import { RelatedLinks } from "@/components/related/related-links";
 import { useArticleComments } from "../queries";
 import {
@@ -92,6 +100,58 @@ export function ArticleDetailPage({ articleId }: ArticleDetailPageProps) {
       description: "Related Bible chapter",
     };
   }, [article, books]);
+
+  // The article's related Bible chapter (app book code + chapter) — reused
+  // by the audio and quiz links below so every related link stays anchored
+  // to the SAME real relationship (no invented links).
+  const relatedBook = useMemo(
+    () =>
+      article?.relatedBookNumber
+        ? canonicalBook(books ?? [], article.relatedBookNumber)
+        : undefined,
+    [article, books],
+  );
+  const relatedChapter = article?.relatedChapter;
+
+  // Related audio — the related chapter's audio track (existing
+  // `nnrv_audios` data). Surfaced as a deep link to the Audio Bible page
+  // when the track exists; hides itself otherwise.
+  const { data: relatedAudioTrack } = useChapterAudio(
+    relatedBook?.bookNumber ?? 0,
+    relatedChapter ?? 0,
+  );
+  const relatedAudioLink =
+    relatedBook && relatedChapter && relatedAudioTrack
+      ? {
+          href: `/audio-bible?book=${relatedBook.bookNumber}&chapter=${relatedChapter}`,
+          label: `${relatedBook.longName} ${toNepaliDigits(relatedChapter)}`,
+          description: "Related audio",
+        }
+      : null;
+
+  // Related quiz — PUBLISHED quiz questions exist for the related BOOK
+  // (`quiz_questions.book_number` stores the canonical 1..66 number, which is
+  // exactly the article's `relatedBookNumber`). Only rendered when questions
+  // exist — no invented link.
+  const { data: relatedBookHasQuiz } = useQuizBookHasQuestions(
+    article?.relatedBookNumber,
+  );
+  const relatedQuizLink =
+    article?.relatedBookNumber && relatedBookHasQuiz
+      ? {
+          href: buildQuizUrl({
+            kind: "play",
+            difficulty: QUIZ_DEFAULT_DIFFICULTY,
+            limit: QUIZ_DEFAULT_LIMIT,
+            bookNumber: article.relatedBookNumber,
+            languageCode: QUIZ_DEFAULT_LANGUAGE,
+          }),
+          label: relatedBook
+            ? `${relatedBook.longName} Quiz`
+            : "Bible Quiz",
+          description: "Related quiz",
+        }
+      : null;
 
   // One-shot view-count bump per article (Flutter bumps on pop; the web bumps
   // once when the article is read). Mutation in an effect — not setState.
@@ -219,6 +279,16 @@ export function ArticleDetailPage({ articleId }: ArticleDetailPageProps) {
           <RelatedLinks
             title="Related Bible chapter"
             links={relatedBibleChapter ? [relatedBibleChapter] : []}
+            className="px-4"
+          />
+          <RelatedLinks
+            title="Related audio"
+            links={relatedAudioLink ? [relatedAudioLink] : []}
+            className="px-4"
+          />
+          <RelatedLinks
+            title="Related quiz"
+            links={relatedQuizLink ? [relatedQuizLink] : []}
             className="px-4"
           />
 

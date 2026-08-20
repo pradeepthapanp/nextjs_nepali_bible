@@ -22,3 +22,18 @@ export function useQuizQuestions(param: QuizParam) {
     queryFn: () => getQuizServices().quiz.getQuestions(param),
   });
 }
+
+/**
+ * Whether PUBLISHED quiz questions exist for a book (1..66 canonical) —
+ * WEB-FIRST internal-linking check: the Bible reader only surfaces a
+ * "Bible quiz" link when the book actually has questions (never invented).
+ * Disabled until a book number is known.
+ */
+export function useQuizBookHasQuestions(bookNumber?: number) {
+  return useQuery({
+    queryKey: quizKeys.hasQuestions(bookNumber ?? 0),
+    queryFn: () =>
+      getQuizServices().quiz.hasQuestionsForBook(bookNumber as number),
+    enabled: Boolean(bookNumber),
+  });
+}

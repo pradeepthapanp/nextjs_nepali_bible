@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ArticleRouteDispatcher } from "@/features/articles/components/article-route-dispatcher";
 import { createArticleServices } from "@/features/articles/services";
+import { deriveArticleExcerpt } from "@/features/articles/utils/excerpt";
 import { JsonLd } from "@/components/json-ld";
 import {
   articleGraph,
@@ -51,7 +52,9 @@ export async function generateMetadata({
       if (article?.title) {
         return seo({
           title: article.title,
-          description: article.excerpt || article.title,
+          // The stored excerpt when present, else derived from the body
+          // (existing content — never invented).
+          description: deriveArticleExcerpt(article),
           keywords: article.category ? [article.category] : undefined,
           path,
         });
@@ -89,7 +92,7 @@ async function articleJsonLd(
         return [
           articleGraph({
             headline: article.title,
-            description: article.excerpt || article.title,
+            description: deriveArticleExcerpt(article),
             path,
             datePublished: article.publishedAt ?? article.createdAt,
             author: article.authorName,

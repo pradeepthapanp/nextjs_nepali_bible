@@ -69,4 +69,22 @@ export class QuizService {
     const rows = unwrap<QuizQuestionRow[]>(response) as QuizQuestionRow[] | null;
     return (rows ?? []).map(mapQuizQuestion);
   }
+
+  /**
+   * Whether PUBLISHED quiz questions exist for a book (1..66 canonical) —
+   * WEB-FIRST lightweight internal-linking check (the counterpart to the
+   * Bible commentary's `hasContent`). The `get_random_quiz_questions` RPC
+   * only filters by BOOK, so a chapter page links to the book's quiz only
+   * when the book actually has questions (never an invented link).
+   */
+  async hasQuestionsForBook(bookNumber: number): Promise<boolean> {
+    const response = await this.client
+      .from("quiz_questions")
+      .select("id")
+      .eq("book_number", bookNumber)
+      .eq("published", true)
+      .limit(1);
+    const rows = unwrap<{ id: string }[]>(response) as { id: string }[] | null;
+    return (rows ?? []).length > 0;
+  }
 }

@@ -6,7 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDialog } from "@/hooks/use-dialog";
 import type { BibleMap } from "../types";
-import { cleanMapTitle } from "../utils";
+import { cleanMapTitle, deriveMapDescription } from "../utils";
 
 export interface MapInfoDialogProps {
   map: BibleMap | null;
@@ -57,8 +57,11 @@ export function MapInfoDialog({ map, open, onOpenChange }: MapInfoDialogProps) {
             <h2 id={titleId} className="text-lg font-semibold text-foreground">
               Image Information
             </h2>
-            <p className="mt-3 text-sm break-words text-foreground">
+            <p className="mt-3 text-sm font-medium break-words text-foreground">
               {cleanMapTitle(map.title)}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {deriveMapDescription(map)}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={onClose}>

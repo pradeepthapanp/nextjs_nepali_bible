@@ -11,6 +11,7 @@ import {
 } from "@/lib/json-ld";
 import { createClient } from "@/lib/supabase/server";
 import { pageDescriptions, seo } from "@/lib/seo";
+import { deriveSongDescription } from "@features/music/utils";
 
 export async function generateMetadata({
   params,
@@ -35,7 +36,8 @@ export async function generateMetadata({
       if (song?.name) {
         return seo({
           title: song.name,
-          description: song.description ?? `${song.name} — ${pageDescriptions.music}`,
+          // Derived from EXISTING content (lyrics/metadata) — never invented.
+          description: deriveSongDescription(song),
           keywords: song.artist ? [song.artist] : undefined,
           path,
         });
@@ -66,8 +68,7 @@ async function musicJsonLd(
         return [
           musicCompositionGraph({
             title: song.name,
-            description:
-              song.description ?? `${song.name} — ${pageDescriptions.music}`,
+            description: deriveSongDescription(song),
             path,
             artist: song.artist,
           }),

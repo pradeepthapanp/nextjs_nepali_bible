@@ -6,6 +6,7 @@ export * from "./chord-transposer";
 export * from "./capitalize";
 export * from "./deep-link";
 export * from "./song-text";
+export * from "./playlist-description";
 export * from "./clipboard";
 export * from "./search";
 export * from "./reading";
